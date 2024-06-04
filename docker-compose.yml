@@ -1,0 +1,43 @@
+version: "3.7"
+
+services:
+  pgadmin4:
+    container_name: pgadmin4-${APP_ENV}
+    image: docker-registry.mobwal.com/pgadmin4:8.4
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: pgadmin4@skr.com
+      PGADMIN_DEFAULT_PASSWORD: guest-skr-com
+      PGADMIN_LISTEN_PORT: 5050
+    volumes:
+      - ${PGADMIN_PATH:-./pgadmin-dаta}/${APP_ENV:-dev}:/var/lib/pgadmin
+
+  rabbit-mq:
+    container_name: rabbitmq-${APP_ENV}
+    image: docker-registry.mobwal.com/rabbitmq:3.13-management
+    restart: always
+
+  skr-rpc:
+    container_name: skr-rpc-${APP_ENV}
+    image: docker-registry.mobwal.com/skr:${VERSION_CONTAINER:-1.0.25}
+    ports:
+      - ${UI_PORT:-7000}:80
+    environment:
+      CONF: ${APP_ENV:-dev}
+      NODE_VPATH: ${NODE_VPATH:-/dev/}
+      RABBIT_CONNECT: amqp://rabbit-mq:5672
+      RABBIT_UI: http://rabbit-mq:15672
+      DATALENS_URL: ${DATALENS_URL:-http://localhost:8080}
+      CONNECT_STR: ${CONNECT_STR}
+      NODE_THREAD: ${NODE_THREAD:-8}
+      VERSION_CONTAINER: ${VERSION_CONTAINER:-1.0.25}
+      SITE: ${SITE}
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - rabbit-mq
+    volumes:
+      - ${STORAGE_PATH:-./storage}/${APP_ENV:-dev}:/app/storage:rw
+      - ${FILES_PATH:-./files}/${APP_ENV:-dev}:/app/files:rw
+      - ${WSDL_PATH:-./wsdl}/${APP_ENV:-dev}:/app/wsdl:rw

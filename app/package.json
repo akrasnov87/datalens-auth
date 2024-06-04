@@ -1,0 +1,41 @@
+{
+  "name": "skr-rpc-service",
+  "version": "4.2.913",
+  "private": true,
+  "birthday": "2023-03-14",
+  "scripts": {
+    "start": "node ./bin/www"
+  },
+  "dependencies": {
+    "args-parser": "^1.3.0",
+    "cookie-parser": "^1.4.6",
+    "cors": "latest",
+    "ejs": "^3.1.5",
+    "email-validator": "^2.0.4",
+    "express": "^4.17.2",
+    "express-fileupload": "^1.2.0",
+    "express-http-proxy": "^2.0.0",
+    "express-session": "^1.17.1",
+    "form-data": "latest",
+    "generate-password": "^1.7.0",
+    "http-errors": "^1.8.1",
+    "json-2-csv": "git+https://github.com/akrasnov87/json-2-csv.git",
+    "json-parser": "latest",
+    "mime-types": "^2.1.34",
+    "mobnius-packager": "git://git.mobwal.com/mobnius/packager.git",
+    "mobnius-pg-dbcontext": "git://git.mobwal.com/mobnius/pg-dbcontext.git",
+    "mobnius-schema-reader": "git://git.mobwal.com/mobnius/schema-reader.git",
+    "moment": "^2.29.1",
+    "node-cache": "^5.1.2",
+    "nodemailer": "^6.7.2",
+    "pino": "^8.16.1",
+    "request": "^2.88.2",
+    "rimraf": "^3.0.2",
+    "serve-favicon": "latest",
+    "uuid": "^8.3.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://git/skr/skr-rpc-service"
+  }
+}

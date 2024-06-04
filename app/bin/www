@@ -1,0 +1,152 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+const cluster = require('cluster');
+const http = require('http');
+const process = require('process');
+const Console = require('../modules/log');
+
+var timerContext = require('../modules/timer-context');
+const args = require('../modules/conf')();
+const numCPUs = getThreadCount();
+
+const port = parseInt(args.port || '3000');
+var vPath = args.virtual_dir_path;
+
+process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 1;
+
+// инициализация подключения
+connect_pg = require('mobnius-pg-dbcontext/modules/pool-connection-db');
+connect_pg.init(args.connection_string, `${args.application_name} - ${port}`);
+
+if(args.pg_log) {
+    Console.initPG();
+}
+
+if(connect_pg.pool()) {
+    var pool = connect_pg.pool();
+    Console.debug(`${process.pid}: подключение к БД ${pool.options.database} инициализировано`, 'INIT');
+}
+
+if (cluster.isMaster) {
+
+    var cluster_map = {};
+
+    require('./init')(false, function() {  // инициализация схемы БД
+        Console.log(`Master ${process.pid} is running`, 'INIT');
+
+        const httpServer = http.createServer();
+
+        // needed for packets containing buffers (you can ignore it if you only send plaintext objects)
+        // Node.js < 16.0.0
+        //cluster.setupMaster({
+        //    serialization: "advanced",
+        //});
+        // Node.js > 16.0.0
+        cluster.setupPrimary({
+            serialization: "advanced",
+        });
+
+        httpServer.listen(port);
+
+        Console.log(`Main listening ${port}${vPath}`, 'INIT');
+
+        // Fork workers
+        for(var i = 0; i < numCPUs; i++) {
+            var param = { 'WORKER_INDEX': i, 'PORT': port + (i+1) };
+            var worker = cluster.fork(param);
+            cluster_map[worker.process.pid] = param;
+        }
+
+        cluster.on('exit', (worker, code, signal) => {
+            Console.log(`worker ${worker.process.pid} died`, 'INIT');
+            var newWorker = cluster.fork(cluster_map[worker.process.pid]);
+
+            cluster_map[newWorker.process.pid] = Object.assign({}, cluster_map[worker.process.pid]);
+            delete cluster_map[worker.process.pid];
+        });
+
+        // создадим таймеры, делаем подключение к БД, подключение не закрываем
+        timerContext((time) => {
+            // тут обратный вызов для получения результат 
+        });
+    });
+
+    process.on('uncaughtException', function (err) {
+        Console.error(`Неожиданная остановка приложения ${err.stack}`, 'INIT');
+        connect_pg.close();
+    
+        process.exit();
+    });
+
+    return;
+}
+
+// инициализация дочернего процесса
+
+var server = null;
+
+require('./init')(true, () => {  // инициализация схемы БД
+    var app = require('../app');
+    server = http.createServer(app);
+
+    server.listen(parseInt(process.env['PORT']));
+
+    server.on('error', onError);
+    server.on('listening', onListening);
+});
+
+process.on('uncaughtException', function (err) {
+    Console.error(`Неожиданная остановка приложения ${err.stack}. Порт ${port}`, 'INIT');
+
+    connect_pg.close();
+
+    process.exit();
+});
+
+/**
+ * Event listener for HTTP server "error" event.
+ */
+
+function onError(error) {
+    if (error.syscall !== 'listen') {
+        throw error;
+    }
+
+    var bind = typeof port === 'string'
+      ? 'Pipe ' + port
+      : 'Port ' + port;
+
+    // handle specific listen errors with friendly messages
+    switch (error.code) {
+      case 'EACCES':
+          Console.error(bind + ' requires elevated privileges', 'INIT');
+          process.exit(1);
+          break;
+      case 'EADDRINUSE':
+          Console.error(bind + ' is already in use', 'INIT');
+          process.exit(1);
+          break;
+      default:
+        throw error;
+    }
+}
+
+function onListening() {
+    var addr = server.address();
+    var bind = typeof addr === 'string'
+      ? 'pipe ' + addr
+      : 'port ' + addr.port;
+
+    Console.log(`Worker listening ${process.pid} on ` + bind + `${vPath}`, 'INIT');
+}
+
+function getThreadCount() {
+    if(args.node_thread && args.node_thread != -1) {
+        return args.node_thread;
+    } else {
+        return require('os').availableParallelism();
+    }
+}

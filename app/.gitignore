@@ -1,0 +1,10 @@
+node_modules
+*-lock.json
+/log
+/schema
+/*.zip
+/*.bat
+/files
+/lkk-files
+/skr-files
+dev.conf

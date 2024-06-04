@@ -1,0 +1,90 @@
+/**
+ * @file modules/authorize/authorization-db.js
+ * @project skr-rpc-service
+ * @author Александр
+ */
+
+var db = require('../dbcontext');
+var args = require('../conf')();
+const NodeCache = require("node-cache");
+
+/**
+ * период времени для хранение ключа в кэш (секунды)
+ * @type {number}
+ * @default 60
+ */
+var user_auth_expire = args.user_auth_expire || 5;
+var user_checkperiod = args.user_checkperiod || 3;
+
+const myCache = new NodeCache({ stdTTL: user_auth_expire, checkperiod: user_checkperiod, deleteOnExpire: true });
+
+function getDevice(user_id, key, callback) {
+    if (typeof callback == 'function') {
+        db.func('core', 'sf_user_devices', null).Select({ params: [user_id, key] }, (data) => {
+            var devices = data.meta.success ? data.result.records : null;
+            callback(devices);
+        });
+    }
+}
+
+/**
+ * возвращается информация о пользователе
+ * @param {string} userName имя пользователя
+ * @param {string} password пароль пользователя
+ * @param {function} callback функция обратного вызова
+ * @example
+ * getUser('user', 'password', function(user, original) {
+ *      if(user.id > 0) {
+ *          // пользователь авторизован
+ *      }
+ *      // в переменной original храниться информация о пользователе, если она есть в БД
+ * });
+ */
+exports.getUser = function (login, password, ip, key, name, isKeyMode, disableCache, without_alias, callback) {
+    key = (key == "" || key == "null") ? null : key
+    var cacheKey = args.auth_key_mode ?  (key == null ? null : key.toString()) : login;
+
+    if (typeof callback == 'function') {
+        var user = {
+            id: -1,
+            c_claims: ''
+        };
+        
+        var result = myCache.has(cacheKey) ? myCache.get(cacheKey) : null;
+
+        // пользователь ранее был авторизован и информация в кэше о нем есть
+        if(result && !disableCache) {
+            myCache.set(cacheKey, result);
+            callback(result);
+        } else {
+            db.func('core', 'sf_verify_user', null).Query({ params:[login, password, ip, name, key, isKeyMode]}, function(data) {
+                var f_user = parseInt(data.meta.success ? data.result.records[0].sf_verify_user : -1);
+                if (f_user > 0) {
+                    db.func('core', without_alias ? 'sf_users_with_alias' : 'sf_users', null).Select({ params: (without_alias ? [f_user, false] : [f_user])}, function (data) {
+                        var item = data.result.records[0];
+                        item.id = parseInt(item.id);
+
+                        var numKey = null;
+                        try {
+                            numKey = parseInt(/\d+/gi.exec(key)[0])
+                        } catch(e) {
+
+                        }
+
+                        getDevice(item.id, numKey, (devices)=>{
+                            item.devices = devices;
+                            
+                            if(cacheKey != null && !disableCache) {
+                                myCache.set(cacheKey, item);
+                            }
+
+                            callback(item);
+                        })
+                    });
+                } else {
+                    callback(user, null);
+                }
+            });
+        }
+    }
+}
