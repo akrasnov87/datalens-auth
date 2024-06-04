@@ -1,5 +1,1 @@
-/containers
-/dev
-*.zip
-/pgadmin-data
-/files
+/.env.dev
