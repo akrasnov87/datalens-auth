@@ -62,7 +62,7 @@ exports.datalens = function (session) {
                 if (rows) {
                     // тут нужно создать токен из user devices
 
-                    callback(result_layout.ok([{ 'statusCode': 200, 'token': session.request.headers['rpc-authorization'], user_id: session.user.id, claims: session.user.c_claims, projectId: args.application_name, login: session.user.c_login }]));
+                    callback(result_layout.ok([{ 'statusCode': 200, 'token': session.request.headers['rpc-authorization'], user_id: session.user.id, claims: session.user.c_claims, projectId: args.application_name, login: session.user.c_login, root: session.user.c_claims.indexOf(args.primary_role) >= 0 }]));
                 } else {
                     Console.error(`Пользователь не имеет прав на выполнение операции: ${JSON.stringify(data)}`, 'DATALENS_ACCESS', session.user.id, session.user.c_claims);
                     

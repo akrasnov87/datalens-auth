@@ -6,6 +6,7 @@
 
 var args = require('./conf')();
 const process = require('process');
+var parse = require('pg-connection-string').parse;
 
 
 /**
@@ -39,4 +40,14 @@ exports.applyValues = function(text, values) {
     } 
 
     return text;
+}
+
+exports.normal_conn_str = function(connection_string) {
+    if(connection_string.indexOf('postgres://') >= 0) {
+        var config = parse(connection_string)
+
+        return `host:${config.host};port:${config.port};user:${config.user};password:${config.password};database:${config.database}`;
+    } else {
+        return connection_string;
+    }
 }

@@ -124,4 +124,3 @@ pg_log=true
 * core.sf_user_devices
 * core.sf_users_by_login_with_alias
 * core.sf_update_auth
-* dbo.of_mui_sd_table_change

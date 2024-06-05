@@ -8,7 +8,8 @@ var provider = require('mobnius-pg-dbcontext/index.v3');
 var filter = require('./rpc/modules/access-filter');
 var args = require('./conf')();
 var util = require('./rpc/util');
-provider.initPool(args.connection_string, global.schemas, args.query_limit, args.application_name);
+var utils = require('./utils');
+provider.initPool(utils.normal_conn_str(args.connection_string), global.schemas, args.query_limit, args.application_name);
 
 /**
  * Специальный компонент для создания ручных запросов

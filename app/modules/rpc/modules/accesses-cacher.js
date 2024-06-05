@@ -46,25 +46,6 @@ exports.getAccesses = function (user_id, callback) {
     }
 }
 
-exports.getTableState = getTableState;
-
-function getTableState(isFrom, user, callback) {
-    if(isFrom == true) {
-        db.func('dbo', 'of_mui_sd_table_change', { user: user }).Select({
-            params:['']
-        }, function(res) {
-            var data = {};
-            for(var i in res.result.records) {
-                data[res.result.records[i].c_table_name] = res.result.records[i].n_change;
-            }
-
-            callback(data);
-        });
-    } else {
-        callback(null);
-    }
-}
-
 function convertResult(result) {
     if (result.meta.success) {
         var accesses = {

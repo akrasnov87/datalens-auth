@@ -3,8 +3,4 @@ node_modules
 /log
 /schema
 /*.zip
-/*.bat
-/files
-/lkk-files
-/skr-files
 dev.conf

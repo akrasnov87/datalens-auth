@@ -49,7 +49,7 @@ exports.user = function (skip) {
 
                 res.user = user;
                 res.isAuthorize = user.id != -1;
-                res.isMaster = user.c_claims.indexOf('.master.') >= 0;
+                res.isMaster = user.c_claims.indexOf(args.primary_role) >= 0;
                 
                 if (!res.isAuthorize) {
                     if(args.debug) {

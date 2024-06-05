@@ -14,14 +14,18 @@ virtual_dir_path="/dev/"
 debug=true
 port=5000
 node_thread=2
-connection_string="host:server;port:5432;user:root;password:secret;database:database-name"
+connection_string="postgres://user:password@server:5432/database-name"
 application_name="datalens-auth-dev"
 </pre>
 
 - NODE_VPATH="/dev/" - виртуальный каталог
 - NODE_THREAD=2 - количество потоков внутри контейнера
 - VERSION_CONTAINER=0.1.0 - версия контейнера
-- CONNECT_STR="host:server;port:5432;user:root;password:secret;database:database-name" - подключение к БД
+- CONNECT_STR="postgres://user:password@server:5432/database-name" - подключение к БД
+
+В системе предусмотрена использование двух форматов строк подключения к БД:
+* host:server;port:5432;user:root;password:secret;database:database-name (устаревший)
+* postgres://user:password@server:5432/database-name
 
 #### О контейнерах
 - akrasnov87/datalens-auth:0.1.0- хранится на [`docker hub`](https://hub.docker.com/repository/docker/akrasnov87/datalens-auth/general), можно заменить своим собрав командой `docker build --build-arg DOCKER_USER=dl -t akrasnov87/datalens-auth:0.1.0 .`

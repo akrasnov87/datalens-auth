@@ -11,6 +11,7 @@
  var reader = require('mobnius-schema-reader/index.v3');
  const Console = require('../modules/log');
  var moment = require('moment');
+ var utils = require('../modules/utils');
  
  /**
   * Генерация схемы для NodeJS.
@@ -20,7 +21,7 @@
   */
  module.exports = function (readOnly, callback) {
      reader({
-         connectionString: args.connection_string,
+         connectionString: utils.normal_conn_str(args.connection_string),
          autoRemove: true,
          schemaList: ["'public'", "'pg_catalog'", "'information_schema'"],
          schemaReference: join(__dirname, '../', 'schema.reference'),

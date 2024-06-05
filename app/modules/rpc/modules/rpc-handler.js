@@ -11,7 +11,6 @@
  var util  = require('../util');
  var args = require('../../conf')();
  var pkg = require('../../../package.json');
- var accessesCacher = require('./accesses-cacher');
  
  module.exports = function (req, res, finish) {
      var body = req.body;
@@ -69,7 +68,6 @@
                          result.totalTime = new Date() - dt;
                          result.host = utils.getCurrentHost();
                          result.version = pkg.version;
-                         result['arm_version'] = global.settings['arm_version'];
                          if (alias) {
                              result.action = alias;
                          }
@@ -122,28 +120,21 @@
      }
  
      var dta = Date.now();
-     getTableState(req.isFrom, res.user, function (tableChange) {
-        if (Array.isArray(body) == true) {
-            next(tableChange, function () {
-                Console.debug(null, 'RPC_PACKAGE', res.user.id, res.user.c_claims, Date.now() - dta, body.length);
+     if (Array.isArray(body) == true) {
+        next({}, function () {
+            Console.debug(null, 'RPC_PACKAGE', res.user.id, res.user.c_claims, Date.now() - dta, body.length);
 
-                finish(results);
-            });
-        } else {
-            body = [body];
-            next(tableChange, function () {
-                Console.debug(null, 'RPC_PACKAGE', res.user.id, res.user.c_claims, Date.now() - dta, 1);
+            finish(results);
+        });
+    } else {
+        body = [body];
+        next({}, function () {
+            Console.debug(null, 'RPC_PACKAGE', res.user.id, res.user.c_claims, Date.now() - dta, 1);
 
-                finish(results);
-            });
-        }
-     });
+            finish(results);
+        });
+    }
  }
-
- function getTableState(isFrom, user, callback) {
-    accessesCacher.getTableState(isFrom, user, callback);
-}
- 
  
  /**
   * создание ответа на запроса
@@ -180,7 +171,7 @@
      if(method == 'Add' || method == 'Update' || method == 'AddOrUpdate') { 
          var filter = util.isOrgFilter(schema, tableName);
          if(filter) {
-             if(user.c_claims.indexOf('.master.') >= 0) {
+             if(user.c_claims.indexOf(args.primary_role) >= 0) {
                  return item;
              }
  
