@@ -5,14 +5,14 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "pwa-node",
+            "type": "node",
             "request": "launch",
             "name": "Launch Program",
             "skipFiles": [
                 "<node_internals>/**"
             ],
             "program": "${workspaceFolder}/bin/www",
-            "args": ["conf=./dev.conf"]
+            "args": ["conf=./demo.conf"]
         }
     ]
 }

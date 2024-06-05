@@ -161,7 +161,7 @@ exports.authorize = function (req, res, next) {
 
                 Console.debug(`Пользователь ${UserName} не авторизован (${result.count}/${AUTH_COUNT}).`, 'AUTH');
 
-                res.status(401).json({
+                return res.status(401).json({
                     meta: {
                         success: false,
                         msg: 'Пользователь не авторизован.',
@@ -189,7 +189,7 @@ exports.authorize = function (req, res, next) {
                     if((newKey != null && newKey < 0) || args.auth_key_mode && !Key && newKey != null && newKey < 0) {
                         newKey = newKey < 0 ? newKey * -1 : newKey;
 
-                        res.status(401).json({
+                        return res.status(401).json({
                             meta: {
                                 success: false,
                                 msg: 'not equal key',
@@ -211,10 +211,7 @@ exports.authorize = function (req, res, next) {
                             date: new Date(),
                             n_key: newKey,
                             port: process.pid,
-                            version: pkg.version,
-                            f_org: user.f_org,
-                            profile: user.c_profile_const,
-                            f_alias: user.f_alias
+                            version: pkg.version
                         },
                         projectId: args.application_name
                     });

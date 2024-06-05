@@ -33,53 +33,70 @@ if(connect_pg.pool()) {
 
 if (cluster.isMaster) {
 
-    var cluster_map = {};
+    function connect_cicle(callback) {
+        var timer = setTimeout(() => {
+            clearTimeout(timer);
+            timer = null;
 
-    require('./init')(false, function() {  // инициализация схемы БД
-        Console.log(`Master ${process.pid} is running`, 'INIT');
+            var pool = connect_pg.pool()
+            if(pool._clients.length > 0) {
+                callback();
+            } else {
+                Console.debug(`${process.pid}: ожидание подключения к БД ${pool.options.database}`, 'INIT');
+                connect_cicle(callback);
+            }
+        }, 3000);
+    }
 
-        const httpServer = http.createServer();
+    connect_cicle(()=>{
+        var cluster_map = {};
 
-        // needed for packets containing buffers (you can ignore it if you only send plaintext objects)
-        // Node.js < 16.0.0
-        //cluster.setupMaster({
-        //    serialization: "advanced",
-        //});
-        // Node.js > 16.0.0
-        cluster.setupPrimary({
-            serialization: "advanced",
+        require('./init')(false, function() {  // инициализация схемы БД
+            Console.log(`Master ${process.pid} is running`, 'INIT');
+
+            const httpServer = http.createServer();
+
+            // needed for packets containing buffers (you can ignore it if you only send plaintext objects)
+            // Node.js < 16.0.0
+            //cluster.setupMaster({
+            //    serialization: "advanced",
+            //});
+            // Node.js > 16.0.0
+            cluster.setupPrimary({
+                serialization: "advanced",
+            });
+
+            httpServer.listen(port);
+
+            Console.log(`Main listening ${port}${vPath}`, 'INIT');
+
+            // Fork workers
+            for(var i = 0; i < numCPUs; i++) {
+                var param = { 'WORKER_INDEX': i, 'PORT': port + (i+1) };
+                var worker = cluster.fork(param);
+                cluster_map[worker.process.pid] = param;
+            }
+
+            cluster.on('exit', (worker, code, signal) => {
+                Console.log(`worker ${worker.process.pid} died`, 'INIT');
+                var newWorker = cluster.fork(cluster_map[worker.process.pid]);
+
+                cluster_map[newWorker.process.pid] = Object.assign({}, cluster_map[worker.process.pid]);
+                delete cluster_map[worker.process.pid];
+            });
+
+            // создадим таймеры, делаем подключение к БД, подключение не закрываем
+            timerContext((time) => {
+                // тут обратный вызов для получения результат 
+            });
         });
 
-        httpServer.listen(port);
-
-        Console.log(`Main listening ${port}${vPath}`, 'INIT');
-
-        // Fork workers
-        for(var i = 0; i < numCPUs; i++) {
-            var param = { 'WORKER_INDEX': i, 'PORT': port + (i+1) };
-            var worker = cluster.fork(param);
-            cluster_map[worker.process.pid] = param;
-        }
-
-        cluster.on('exit', (worker, code, signal) => {
-            Console.log(`worker ${worker.process.pid} died`, 'INIT');
-            var newWorker = cluster.fork(cluster_map[worker.process.pid]);
-
-            cluster_map[newWorker.process.pid] = Object.assign({}, cluster_map[worker.process.pid]);
-            delete cluster_map[worker.process.pid];
+        process.on('uncaughtException', function (err) {
+            Console.error(`Неожиданная остановка приложения ${err.stack}`, 'INIT');
+            connect_pg.close();
+        
+            process.exit();
         });
-
-        // создадим таймеры, делаем подключение к БД, подключение не закрываем
-        timerContext((time) => {
-            // тут обратный вызов для получения результат 
-        });
-    });
-
-    process.on('uncaughtException', function (err) {
-        Console.error(`Неожиданная остановка приложения ${err.stack}`, 'INIT');
-        connect_pg.close();
-    
-        process.exit();
     });
 
     return;

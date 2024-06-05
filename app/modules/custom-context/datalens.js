@@ -137,7 +137,7 @@ exports.datalens = function (session) {
                     } else {
                         var key = rows.rows[0].sf_update_auth;
                         if(key != null) {
-                            callback(result_layout.ok([{ 'statusCode': 200, 'embed': Buffer.from(UserName + ':' + key).toString('base64') }]));
+                            callback(result_layout.ok([{ 'statusCode': 200, 'embed': Buffer.from(session.user.c_login + ':' + key).toString('base64') }]));
                         } else {
                             callback(result_layout.ok([{ 'statusCode': 200, 'embed': session.request.headers['rpc-authorization'] }]));
                         }
@@ -167,7 +167,7 @@ exports.datalens = function (session) {
                 if(err) {
                     callback(result_layout.error(err)); 
                 } else {
-                    callback(result_layout.ok(rows.rows));
+                    callback(result_layout.ok(rows.rows.filter((i) => { return args.primary_role.indexOf(i.name) < 0; })));
                 }
             });
         },
@@ -183,12 +183,12 @@ exports.datalens = function (session) {
         accesses: function(data, callback) {
             db.provider.db().query(`
             SELECT 	pa.f_role AS role_id,
-                    CASE WHEN pa.c_function ILIKE '%.Select' THEN true ELSE false END AS "select",
-                    CASE WHEN pa.c_function ILIKE '%.Add' THEN true ELSE false END AS "add",
-                    CASE WHEN pa.c_function ILIKE '%.Update' THEN true ELSE false END AS "update",
-                    CASE WHEN pa.c_function ILIKE '%.Delete' THEN true ELSE false END AS "delete"
+                    CASE WHEN pa.c_function ILIKE '%.Select' OR pa.c_function = 'DL.*' THEN true ELSE false END AS "select",
+                    CASE WHEN pa.c_function ILIKE '%.Add' OR pa.c_function = 'DL.*' THEN true ELSE false END AS "add",
+                    CASE WHEN pa.c_function ILIKE '%.Update' OR pa.c_function = 'DL.*' THEN true ELSE false END AS "update",
+                    CASE WHEN pa.c_function ILIKE '%.Delete' OR pa.c_function = 'DL.*' THEN true ELSE false END AS "delete"
             FROM core.pd_accesses as pa
-            WHERE pa.c_function ILIKE ('DL.' || $1 || '.%');`, 
+            WHERE pa.c_function ILIKE ('DL.' || $1 || '.%') OR pa.c_function = 'DL.*';`, 
             [data.dl], function(err, rows) { 
                 if(err) {
                     callback(result_layout.error(err)); 

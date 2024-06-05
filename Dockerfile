@@ -1,5 +1,5 @@
 # FROM ubuntu:20.04
-FROM docker-registry.mobwal.com/ubuntu:20.04
+FROM ubuntu:20.04
 
 LABEL author="Aleksandr Krasnov"
 LABEL desc="Образ RPC-сервиса для СКРМО"
