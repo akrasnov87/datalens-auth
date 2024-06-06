@@ -10,6 +10,10 @@ fi
 
 sed -i 's+application_name="datalens-auth-\w*-node"+application_name="datalens-auth-'"$APP_ENV"'-node"+g' $CONFIG_PATH
 
+if [ -n "$PROJECT_ID" ]; then
+    sed -i 's+application_name=.*+application_name="'"$PROJECT_ID"'"+g' $CONFIG_PATH
+fi
+
 if [ -n "$CONNECT_STR" ]; then
     sed -i 's+connection_string=.*+connection_string="'"$CONNECT_STR"'"+g' $CONFIG_PATH
 fi

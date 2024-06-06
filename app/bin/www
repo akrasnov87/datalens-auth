@@ -22,30 +22,38 @@ process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 1;
 connect_pg = require('mobnius-pg-dbcontext/modules/pool-connection-db');
 connect_pg.init(utils.normal_conn_str(args.connection_string), `${args.application_name} - ${port}`);
 
-if(args.pg_log) {
-    Console.initPG();
-}
-
-if(connect_pg.pool()) {
-    var pool = connect_pg.pool();
-    Console.debug(`${process.pid}: подключение к БД ${pool.options.database} инициализировано`, 'INIT');
-}
-
 if (cluster.isMaster) {
 
     function connect_cicle(callback) {
-        var timer = setTimeout(() => {
-            clearTimeout(timer);
-            timer = null;
+        if(args.valid_db_data == true) {
+            var timer = setTimeout(() => {
+                clearTimeout(timer);
+                timer = null;
 
-            var pool = connect_pg.pool()
-            if(pool._clients.length > 0) {
-                callback();
-            } else {
-                Console.debug(`${process.pid}: ожидание подключения к БД ${pool.options.database}`, 'INIT');
-                connect_cicle(callback);
-            }
-        }, 3000);
+                var pool = connect_pg.pool()
+                pool.query(`SELECT COUNT(*) FROM core.pd_users WHERE c_login = '${args.primary_role.replace(/\./gi, '')}'`, [], (err, rows, time) => { 
+                    if(err) {
+                        Console.error(`${process.pid}: ожидание подключения к БД. ${err.stack}`, 'INIT');
+                        connect_cicle(callback);
+                    } else {
+                        if (rows.rows.length > 0 && rows.rows[0].count == '1') {
+                            
+                            if(args.pg_log) {
+                                Console.initPG();
+                            }
+
+                            Console.debug(`${process.pid}: подключение к БД ${pool.options.database} инициализировано`, 'INIT');
+
+                            callback();
+                        } else {
+                            connect_cicle(callback);
+                        }
+                    }
+                });
+            }, 3000);
+        } else {
+            callback();
+        }
     }
 
     connect_cicle(()=>{
@@ -103,6 +111,10 @@ if (cluster.isMaster) {
 }
 
 // инициализация дочернего процесса
+
+if(args.pg_log) {
+    Console.initPG();
+}
 
 var server = null;
 

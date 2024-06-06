@@ -1,8 +1,7 @@
-# FROM ubuntu:20.04
 FROM ubuntu:20.04
 
 LABEL author="Aleksandr Krasnov"
-LABEL desc="Образ RPC-сервиса для СКРМО"
+LABEL desc="Образ RPC-сервиса для авторизации в Datalens"
 
 RUN apt update && apt upgrade -y
 
@@ -17,6 +16,7 @@ RUN apt install nodejs nginx -y
 WORKDIR /app
 ARG DOCKER_USER=dl
 COPY app /app
+RUN rm /app/dev.conf
 
 COPY start-node.sh /start-node.sh
 COPY change-version.js /change-version.js
