@@ -31,7 +31,7 @@ if (cluster.isMaster) {
                 timer = null;
 
                 var pool = connect_pg.pool()
-                pool.query(`SELECT COUNT(*) FROM core.pd_users WHERE c_login = '${args.primary_role.replace(/\./gi, '')}'`, [], (err, rows, time) => { 
+                pool.query(`SELECT COUNT(*) FROM core.pd_users`, [], (err, rows, time) => { 
                     if(err) {
                         Console.error(`${process.pid}: ожидание подключения к БД. ${err.stack}`, 'INIT');
                         connect_cicle(callback);
