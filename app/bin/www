@@ -36,7 +36,7 @@ if (cluster.isMaster) {
                         Console.error(`${process.pid}: ожидание подключения к БД. ${err.stack}`, 'INIT');
                         connect_cicle(callback);
                     } else {
-                        if (rows.rows.length > 0 && rows.rows[0].count == '1') {
+                        if (rows.rows.length > 0 && parseInt(rows.rows[0].count) > 0) {
                             
                             if(args.pg_log) {
                                 Console.initPG();

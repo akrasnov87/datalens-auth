@@ -4,3 +4,4 @@ node_modules
 /schema
 /*.zip
 dev.conf
+.vscode
