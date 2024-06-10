@@ -18,15 +18,6 @@ var user_checkperiod = args.user_checkperiod || 3;
 
 const myCache = new NodeCache({ stdTTL: user_auth_expire, checkperiod: user_checkperiod, deleteOnExpire: true });
 
-function getDevice(user_id, key, callback) {
-    if (typeof callback == 'function') {
-        db.func('core', 'sf_user_devices', null).Select({ params: [user_id, key] }, (data) => {
-            var devices = data.meta.success ? data.result.records : null;
-            callback(devices);
-        });
-    }
-}
-
 /**
  * возвращается информация о пользователе
  * @param {string} userName имя пользователя
@@ -71,20 +62,31 @@ exports.getUser = function (login, password, ip, key, name, isKeyMode, disableCa
 
                         }
 
-                        getDevice(item.id, numKey, (devices)=>{
-                            item.devices = devices;
-                            
-                            if(cacheKey != null && !disableCache) {
-                                myCache.set(cacheKey, item);
-                            }
+                        if(cacheKey != null && !disableCache) {
+                            myCache.set(cacheKey, item);
+                        }
 
-                            callback(item);
-                        })
+                        callback(item);
                     });
                 } else {
                     callback(user, null);
                 }
             });
         }
+    }
+}
+
+/**
+ * Сброс пароля. Будет сгенерирован новый пароль
+ * @param {string} login логин
+ * @param {string} newPassword новый пароль
+ * @param {function} callback функция обратного вызова
+ */
+exports.passwordReset = function (login, newPassword, callback) {
+    if (typeof callback == 'function') {
+        db.func('core', 'sf_reset_pwd', null).Select({ params: [login, newPassword] }, (data) => {
+            var email = data.meta.success ? data.result.records[0].s : false;
+            callback(email);
+        });
     }
 }

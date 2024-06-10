@@ -20,9 +20,7 @@
  exports.permissions = function(user, action, callback) {
     cacher.getAccesses(user.id, function (convert) {
 
-        var devices = user.devices ? user.devices.filter((i) => i.c_device_name_uf == 'Datalens Embed').length : 0;
-
-        if(devices > 0) {
+        if(user.isEmbed) {
             // значит это preview и Datalens
             return callback({
                 listAccessBindings: false,

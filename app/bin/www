@@ -46,6 +46,7 @@ if (cluster.isMaster) {
 
                             callback();
                         } else {
+                            Console.debug(`${process.pid}: ожидание подключения к БД ${pool.options.database}`, 'INIT');
                             connect_cicle(callback);
                         }
                     }

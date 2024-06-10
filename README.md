@@ -9,8 +9,10 @@ docker run --rm -it --env-file ./.env.demo -p 7000:80 akrasnov87/datalens-auth:0
 
 `postgres://us:us@host.docker.internal:5432/us-db-ci_purgeable`
 
+__Внимание__: сервис будет запущен только в тогда, когда в таблице `core.pd_users` есть записи
+
 #### Описание настроек файла *.env
-- APP_ENV="dev" - режим сборки, требуется наличие файла в папке `app/*.conf`
+- APP_ENV="demo" - режим сборки, требуется наличие файла в папке `app/*.conf`
 
 Пример файла *.conf
 <pre>

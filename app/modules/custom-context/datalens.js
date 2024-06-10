@@ -14,6 +14,7 @@ var Console = require('../log');
 var accessFilter = require('../rpc/modules/access-filter');
 var accessCacher = require('../rpc/modules/accesses-cacher');
 const args = require('../conf')();
+var authorizeDb = require('../authorize/authorization-db');
 
 /**
  * Объект с набором RPC функций
@@ -56,9 +57,7 @@ exports.datalens = function (session) {
             delete data.url;
             delete data.rawHeaders;
 
-            var devices = session.user.devices ? session.user.devices.filter((i) => i.c_device_name_uf == 'Datalens Embed').length : 0;
-
-            accessFilter.filter(devices > 0 ? 'DL.PREVIEW' : 'DL', data, session.user.id, schemas, function (err, rows) {
+            accessFilter.filter(session.user.isEmbed ? 'DL.PREVIEW' : 'DL', data, session.user.id, schemas, function (err, rows) {
                 if (rows) {
                     // тут нужно создать токен из user devices
 
@@ -128,24 +127,18 @@ exports.datalens = function (session) {
          * [{ action: "shell", method: "embeds", data: [{ }], type: "rpc", tid: 0 }]
          */
         embed: function(data, callback) {
-            if(args.auth_key_mode) {
-                var ip = session.request.headers['x-forwarded-for'] || session.request.ip || session.request.socket.remoteAddress;
-                // создаётся специально подключение с другого устройства
-                db.provider.db().query('select * from core.sf_update_auth($1, $2, $3, $4, $5, $6)', ['Datalens Embed', session.user.id, null, ip, data.entryId, args.auth_key_mode], function(err, rows) { 
-                    if(err) {
-                        callback(result_layout.ok([{ 'statusCode': 500, 'message': err.toString() }])); 
+            db.provider.db().query('select * from core.sf_create_embed($1, $2, $3)', [session.request.headers['rpc-authorization'], data.entryId, session.user.c_login], function(err, rows) { 
+                if(err) {
+                    callback(result_layout.ok([{ 'statusCode': 500, 'message': err.toString() }])); 
+                } else {
+                    var decode_id = rows.rows.length == 1 ? rows.rows[0].decode_id : null;
+                    if(decode_id) {
+                        callback(result_layout.ok([{ 'statusCode': 200, 'embed': Buffer.from(`datalens_embedding:${decode_id}`).toString('base64') }]));
                     } else {
-                        var key = rows.rows[0].sf_update_auth;
-                        if(key != null) {
-                            callback(result_layout.ok([{ 'statusCode': 200, 'embed': Buffer.from(session.user.c_login + ':' + key).toString('base64') }]));
-                        } else {
-                            callback(result_layout.ok([{ 'statusCode': 200, 'embed': session.request.headers['rpc-authorization'] }]));
-                        }
+                        callback(result_layout.ok([{ 'statusCode': 500, 'message': 'decode_id не найден.' }]));
                     }
-                });
-            } else {
-                callback(result_layout.ok([{ 'statusCode': 200, 'embed': session.request.headers['rpc-authorization'] }]));
-            }
+                }
+            });
         },
 
         /**
@@ -273,6 +266,122 @@ exports.datalens = function (session) {
                     })
                 })
             })
+        },
+
+        create_user: function(data, callback) {
+            if(!session.user.isMaster) {
+                return callback(result_layout.error(`Нет роли ${args.primary_role}`));
+            }
+
+            db.func('core', 'sf_create_user', session).Query({ params: [data.login, data.password, data.email, data.claims]}, function (data) {
+                var res = result_layout.ok([]);
+                res.result = data.result;
+                callback(res);
+            });
+        },
+
+        /**
+         * обновление пользователя
+         * @param {any} data 
+         * @param {function} callback  
+         * @example
+         * [{"action":"datalens","method":"update_user","data":[{ "id":1, "c_email": "test"}],"type":"rpc"}]
+         */
+        update_user: function (data, callback) {
+            if(!session.user.isMaster) {
+                return callback(result_layout.error(`Нет роли ${args.primary_role}`));
+            }
+
+            delete data.c_password;
+            delete data.s_hash;
+            delete data.c_login;
+
+            if(data.id == null || data.id == undefined || data.id == '') {
+                Console.error(`Обновление информации другого аккаунта: идентификатор пользователя не найден`, 'USER', session.user.id, session.user.c_claims);
+                callback(result_layout.error(new Error('Идентификатор пользователя не найден')));
+            } else {
+                db.table('core', 'pd_users', session).Update(data, function (result) {
+                    if (result.meta.success == true) {
+                        callback(result_layout.ok([result.result.records[0].rowCount == 1]));
+                    } else {
+                        Console.error(`Обновление информации другого аккаунта ${data.id}: ${result.meta.msg}`, 'USER', session.user.id, session.user.c_claims);
+
+                        callback(result_layout.error(new Error(result.meta.msg)));
+                    }
+                });
+            }
+        },
+
+        /**
+         * Сбросить пароль для пользователя
+         * @param {*} data 
+         * @param {*} callback 
+         * 
+         * @example
+         * [{"action":"datalens","method":"password_reset","data":[{ "c_login": "user", "c_password": "******"}],"type":"rpc"}]
+         * 
+         * @todo Исключения;
+         * user not child - пользователь не является дочерним;
+         */
+        password_reset: function(data, callback) {
+            if(!session.user.isMaster) {
+                return callback(result_layout.error(`Нет роли ${args.primary_role}`));
+            }
+
+            authorizeDb.passwordReset(data.c_login, data.c_password, function(email) {
+                Console.debug(`Восстановление пароля ${data.c_login}`, 'USER', session.user.id, session.user.c_claims);
+                callback(result_layout.ok([email]));
+            });
+        },
+
+        /**
+         * обновление профиля у пользователя
+         * @param {*} data 
+         * @param {*} callback 
+         * @example
+         * [{"action":"datalens","method":"update_roles","data":[{ "id":1, "c_profile": 'inspector'}],"type":"rpc"}]
+         */
+         update_roles: function(data, callback) {
+            if(!session.user.isMaster) {
+                return callback(result_layout.error(`Нет роли ${args.primary_role}`));
+            }
+
+            var user_id = data.id;
+            var roles = data.c_claims;
+
+            if (user_id) {
+                Console.debug(`Обновление профиля аккаунта ${user_id} на ${roles}`, 'USER', session.user.id, session.user.c_claims);
+
+                db.func('core', 'pf_update_user_roles', session).Query({ params: [user_id, roles]}, function(result) {
+                    if (result.meta.success) {
+                        callback(result_layout.ok(result.result.records));
+                    } else {
+                        Console.error(`Ошибка обновления роли у аккаунта ${user_id}: ${result.meta.msg}.`, 'USER', session.user.id, session.user.c_claims);
+
+                        callback(result_layout.error(new Error(result.meta.msg)));
+                    }
+                });
+            } else {
+                Console.error(`Обновление роли у аккаунта ${user_id}`, 'USER', session.user.id, session.user.c_claims);
+                callback(result_layout.error(new Error('Одно из обязательных полей равно null.')));
+            }
+        },
+
+        users: function(data, callback) {
+            if(!session.user.isMaster) {
+                return callback(result_layout.error(`Нет роли ${args.primary_role}`));
+            }
+
+            if(session.user.isMaster) {
+                db.func('core', 'of_users', session).Select({ params: [null]}, function (data) {
+                    
+                    var res = result_layout.ok([]);
+                    res.result = data.result;
+                    callback(res);
+                });
+            } else {
+                callback(result_layout.ok([]));
+            }
         }
     }
 }
