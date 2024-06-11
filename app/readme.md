@@ -117,10 +117,3 @@ pg_log=true
     delete: true
 }
 </pre>
-
-## Список функций БД
-* core.sf_verify_user
-* core.sf_users_with_alias
-* core.sf_user_devices
-* core.sf_users_by_login_with_alias
-* core.sf_update_auth

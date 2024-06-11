@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Created:
 
-- Созданый функции для работы с пользователями
+- Созданы функции для работы с пользователями
+- [Скрипт](https://github.com/akrasnov87/us-db-ci_purgeable/blob/main/MIGRATION/0.1.1.sql) для обновление БД до версии 0.1.1
 
 Fixed:
 
