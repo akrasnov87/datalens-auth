@@ -22,6 +22,8 @@ process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 1;
 connect_pg = require('mobnius-pg-dbcontext/modules/pool-connection-db');
 connect_pg.init(utils.normal_conn_str(args.connection_string), `${args.application_name} - ${port}`);
 
+Console.debug(`Connection string: ${args.connection_string}`);
+
 if (cluster.isMaster) {
 
     function connect_cicle(callback) {

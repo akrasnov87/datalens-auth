@@ -22,6 +22,7 @@ port=5000
 node_thread=2
 connection_string="postgres://user:password@server:5432/database-name"
 application_name="datalens-demo"
+source_types='.PG_TABLE.'
 </pre>
 
 - NODE_VPATH="/demo/" - виртуальный каталог
@@ -29,10 +30,13 @@ application_name="datalens-demo"
 - VERSION_CONTAINER=0.1.0 - версия контейнера (информационное поле)
 - CONNECT_STR="postgres://user:password@server:5432/database-name" - подключение к БД
 - PROJECT_ID=datalens-demo - наименование проекта в public.workbooks и public.collections  (project_id)
+- SOURCE_TYPES=".PG_TABLE." - имя источника для проверки доступности таблиц
 
 В системе предусмотрена использование двух форматов строк подключения к БД:
 * host:server;port:5432;user:root;password:secret;database:database-name (устаревший)
 * postgres://user:password@server:5432/database-name
+
+__Примечание__: параметр `SOURCE_TYPES` по умолчанию содержит значение `PG_TABLE`, т.к. проверка доступности таблиц сделано, только для `PostgreSQL`.
 
 #### Авторизация
 Используется Basic-авторизация. 
@@ -80,6 +84,28 @@ SELECT core.sf_create_user('user', 'qwe-123', '', '["datalens"]');
 * core.sf_users_by_login_with_alias - Получение информации о пользователе (beta)
 * core.sf_users_with_alias - Получение информации о пользователе (beta)
 * core.sf_verify_user - Проверка пользователя на возможность авторизации
+
+##### Безопасность
+
+В системе предусмотрена возможность ограничения просмотра таблиц, например если требуется в редакторе отображать тольок определённый перечень. Для ограничения прав требуется в таблице `core.pd_accesses` добавить запись с указанием `схемы` или `наименования таблицы`.
+
+Например:
+
+<pre>
+INSERT INTO core.pd_accesses(f_role, c_name, c_function, b_deletable, b_creatable, b_editable, b_full_control)
+VALUES
+(2,	NULL, 'opensource-demo.*',	false,	false,	false,	false);
+</pre>
+
+Код выше указывает, что требуется предоставить доступ для пользователя с ролю `2` к схеме `opensource-demo`. 
+
+Можно и явно указать наименолвание таблицы:
+
+<pre>
+INSERT INTO core.pd_accesses(f_role, c_name, c_function, b_deletable, b_creatable, b_editable, b_full_control)
+VALUES
+(2,	NULL, 'opensource-demo.managers',	false,	false,	false,	false);
+</pre>
 
 #### О контейнерах
 - akrasnov87/datalens-auth:0.1.0- хранится на [`docker hub`](https://hub.docker.com/repository/docker/akrasnov87/datalens-auth/general), можно заменить своим собрав командой `docker build --build-arg DOCKER_USER=dl -t akrasnov87/datalens-auth:0.1.0 .`

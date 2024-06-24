@@ -30,6 +30,10 @@ if [ -n "$NODE_THREAD" ]; then
     sed -i 's+node_thread=[0-9]*+node_thread='$NODE_THREAD'+g' $CONFIG_PATH
 fi
 
+if [ -n "$SOURCE_TYPES" ]; then  
+    sed -i 's+source_types=.*+source_types="'"$SOURCE_TYPES"'"+g' $CONFIG_PATH
+fi
+
 echo "/bin/bash /etc/nginx/setup.sh $APP_ENV 5000 $NODE_THREAD"
 
 /bin/bash /etc/nginx/setup.sh $APP_ENV 5000 $NODE_THREAD
