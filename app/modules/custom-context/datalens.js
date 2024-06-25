@@ -314,6 +314,8 @@ exports.datalens = function (session) {
             } else {
                 db.table('core', 'pd_users', session).Update(data, function (result) {
                     if (result.meta.success == true) {
+                        accessCacher.clearAccesses(data.id);
+
                         callback(result_layout.ok([result.result.records[0].rowCount == 1]));
                     } else {
                         Console.error(`Обновление информации другого аккаунта ${data.id}: ${result.meta.msg}`, 'USER', session.user.id, session.user.c_claims);
@@ -366,6 +368,8 @@ exports.datalens = function (session) {
 
                 db.func('core', 'pf_update_user_roles', session).Query({ params: [user_id, roles]}, function(result) {
                     if (result.meta.success) {
+                        accessCacher.clearAccesses(user_id);
+                        
                         callback(result_layout.ok(result.result.records));
                     } else {
                         Console.error(`Ошибка обновления роли у аккаунта ${user_id}: ${result.meta.msg}.`, 'USER', session.user.id, session.user.c_claims);
