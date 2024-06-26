@@ -24,6 +24,15 @@ exports.datalens = function (session) {
     return {
 
         /**
+         * Текущий пользователь
+         * @param {*} data 
+         * @param {*} callback 
+         */
+        currentUser: function(data, callback) {
+            callback(result_layout.ok([session.user]));
+        },
+
+        /**
          * Получение информации для Datalens (графики)
          * @param {*} data 
          * @param {*} callback 
@@ -183,7 +192,7 @@ exports.datalens = function (session) {
          * @param {*} callback 
          * 
          * @example
-         * [{ "action": "datalens", "method": "accesses", "data": [{ "dl": "w203ynnjgfkck" }], "type": "rpc", "tid": 0 }]
+         * [{ "action": "datalens", "method": "accesses", "data": [{ "id": "w203ynnjgfkck" }], "type": "rpc", "tid": 0 }]
          */
         accesses: function(data, callback) {
             db.provider.db().query(`
@@ -194,7 +203,7 @@ exports.datalens = function (session) {
                     CASE WHEN pa.c_function ILIKE '%.Delete' OR pa.c_function = 'DL.*' THEN true ELSE false END AS "delete"
             FROM core.pd_accesses as pa
             WHERE pa.c_function ILIKE ('DL.' || $1 || '.%') OR pa.c_function = 'DL.*';`, 
-            [data.dl], function(err, rows) { 
+            [data.id], function(err, rows) { 
                 if(err) {
                     callback(result_layout.error(err)); 
                 } else {
@@ -209,7 +218,7 @@ exports.datalens = function (session) {
          * @param {*} callback 
          * 
          * @example
-         * [{ "action": "datalens", "method": "updateAccesses", "data": [{ "dl": "w203ynnjgfkck", "role_id": -1, "select": true, "add": true, "update": true, "delete": true, "destroy": true }], "type": "rpc", "tid": 0 }]
+         * [{ "action": "datalens", "method": "updateAccesses", "data": [{ "id": "w203ynnjgfkck", "role_id": -1, "select": true, "add": true, "update": true, "delete": true, "destroy": true }], "type": "rpc", "tid": 0 }]
          */
         updateAccesses: function(data, callback) {
             var errors = [];
@@ -220,7 +229,7 @@ exports.datalens = function (session) {
                     db.provider.db().query(`
                     DELETE FROM core.pd_accesses as pa
                     WHERE pa.c_function ILIKE ('DL.' || $1 || '.' || $2) AND ${item.role_id == undefined ? "pa.f_user" : "pa.f_role"} = $3;`, 
-                    [item.dl, item.method, item.role_id == undefined ? session.user.id : item.role_id], function(err, rows) { 
+                    [item.id, item.method, item.role_id == undefined ? session.user.id : item.role_id], function(err, rows) { 
                         if(err) {
                             errors.push(err.toString());
                             _callback(err, null); 
@@ -239,7 +248,7 @@ exports.datalens = function (session) {
                     db.provider.db().query(`
                     INSERT INTO core.pd_accesses(${item.role_id == undefined ? "f_user" : "f_role"}, c_function)
                     VALUES($3, 'DL.' || $1 || '.' || $2);`, 
-                    [item.dl, item.method, item.role_id == undefined ? session.user.id : item.role_id], function(err, rows) { 
+                    [item.id, item.method, item.role_id == undefined ? session.user.id : item.role_id], function(err, rows) { 
                         if(err) {
                             errors.push(err.toString());
                             _callback(err, null); 
@@ -262,11 +271,11 @@ exports.datalens = function (session) {
             var next = (data.destroy ? nextDestroy : nextInsert);
 
             //next({dl: data.dl, method: data.destroy ? "%" : '*', role_id: data.role_id }, (err, rows) => {
-            next({dl: data.dl, method: (data['*'] ? (data.destroy ? "%" : '*') : (data.destroy ? "%" : null)), role_id: data.role_id }, (err, rows) => {
-                nextInsert({dl: data.dl, method: data.select ? "Select" : null, role_id: data.role_id }, (err, rows) => {
-                    nextInsert({dl: data.dl, method: data.add ? "Add" : null, role_id: data.role_id }, (err, rows) => {
-                        nextInsert({dl: data.dl, method: data.update ? "Update" : null, role_id: data.role_id }, (err, rows) => {
-                            nextInsert({dl: data.dl, method: data.delete ? "Delete" : null, role_id: data.role_id }, (err, rows) => {
+            next({id: data.id, method: (data['*'] ? (data.destroy ? "%" : '*') : (data.destroy ? "%" : null)), role_id: data.role_id }, (err, rows) => {
+                nextInsert({id: data.id, method: data.select ? "Select" : null, role_id: data.role_id }, (err, rows) => {
+                    nextInsert({id: data.id, method: data.add ? "Add" : null, role_id: data.role_id }, (err, rows) => {
+                        nextInsert({id: data.id, method: data.update ? "Update" : null, role_id: data.role_id }, (err, rows) => {
+                            nextInsert({id: data.id, method: data.delete ? "Delete" : null, role_id: data.role_id }, (err, rows) => {
                                 if(errors.length > 0) {
                                     callback(result_layout.error(errors.join(', ')));
                                 } else {

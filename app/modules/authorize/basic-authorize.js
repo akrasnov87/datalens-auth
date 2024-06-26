@@ -215,7 +215,7 @@ exports.authorize = function (req, res, next) {
                             port: process.pid,
                             version: pkg.version
                         },
-                        projectId: args.application_name
+                        projectId: user.с_project_name || args.application_name
                     });
                 });
             }
