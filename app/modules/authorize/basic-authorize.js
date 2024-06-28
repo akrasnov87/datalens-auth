@@ -212,7 +212,8 @@ exports.authorize = function (req, res, next) {
                             date: new Date(),
                             n_key: newKey,
                             port: process.pid,
-                            version: pkg.version
+                            version: pkg.version,
+                            oidc: user.b_oidc
                         },
                         projectId: user.с_project_name || args.application_name
                     });

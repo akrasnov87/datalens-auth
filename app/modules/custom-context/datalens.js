@@ -316,6 +316,7 @@ exports.datalens = function (session) {
             delete data.c_password;
             delete data.s_hash;
             delete data.c_login;
+            delete data.b_oidc;
 
             if(data.id == null || data.id == undefined || data.id == '') {
                 Console.error(`Обновление информации другого аккаунта: идентификатор пользователя не найден`, 'USER', session.user.id, session.user.c_claims);
@@ -349,6 +350,10 @@ exports.datalens = function (session) {
         password_reset: function(data, callback) {
             if(!session.user.isMaster) {
                 return callback(result_layout.error(`Нет роли ${args.primary_role}`));
+            }
+
+            if(!session.user.oidc) {
+                return callback(result_layout.error(`Является внешним пользователем.`));
             }
 
             authorizeDb.passwordReset(data.c_login, data.c_password, function(email) {
