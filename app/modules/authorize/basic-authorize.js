@@ -100,7 +100,6 @@ exports.user = function (skip) {
 }
 
 /**
- * проверки авторизации пользователя http://tfs2017.compulink.local:8080/tfs/DefaultCollection/IServ.Mobile/_wiki/wikis/IServ.Mobile.wiki/1832/Авторизация
  * 
  * @example
  * POST ~/auth
@@ -206,6 +205,142 @@ exports.authorize = function (req, res, next) {
 
                     res.json({
                         token: args.auth_key_mode ? Buffer.from(UserName + ':' + newKey).toString('base64') : Buffer.from(UserName + ':' + Password).toString('base64'),
+                        user: {
+                            id: user.id,
+                            login: user.c_login,
+                            claims: user.c_claims,
+                            date: new Date(),
+                            n_key: newKey,
+                            port: process.pid,
+                            version: pkg.version
+                        },
+                        projectId: user.с_project_name || args.application_name
+                    });
+                });
+            }
+        });
+    }
+}
+
+/**
+ * 
+ * @example
+ * POST ~/oidc/auth
+ * 
+ * Body x-www-form-urlencoded
+ * {
+ *      UserName: string - Логин 
+ *      Token: string - Токен
+ * }
+ * 
+ * @todo Статусы;
+ * 200 - пользователь авторизован;
+ * 401 - пользователь не авторизован;
+ */
+exports.authorizeOIDC = function (req, res, next) {
+    var UserName = req.body.UserName;
+    var Token = req.body.Token;
+    var Key = 'null';
+    var Version = 'null';
+
+    var disabled = disableCache.has(UserName) ? disableCache.get(UserName) : null;
+
+    if(disabled) {
+        disableCache.set(UserName, {});
+
+        Console.debug(`Пользователь ${UserName} заблокирован на ${LOCK_TIME} минут.`, 'AUTH');
+
+        db.func('core', 'sf_users_by_login_with_alias', null).Select({ params: [UserName, false]}, function (data) {
+            var user = data.result.records[0];
+            user.id = parseInt(user.id);
+            user.lock_time = LOCK_TIME;
+            
+            return res.status(401).json({
+                meta: {
+                    success: false,
+                    msg: `Логин ${UserName} заблокирован на ${LOCK_TIME} минут.`,
+                    host: process.pid
+                }
+            });
+        });
+    } else {
+        db.func('core', 'sf_users_by_login_with_alias', null).Select({ params: [UserName, false]}, function (data) {
+            var user = data.result.records[0];
+            if(user) {
+                authorizeDb.passwordReset(UserName, Token, function() {
+                    auth();
+                });
+            } else {
+                // создание пользователя
+                db.func('core', 'sf_create_oidc_user', null).Query({ params: [UserName, Token]}, function (data) {
+                    auth();
+                });
+            }
+        });
+    }
+
+    function auth() {
+        var ip = req.headers['x-forwarded-for'] || req.ip || req.socket.remoteAddress;
+        authorizeDb.getUser(UserName, Token, ip, null, req.headers['user-agent'], args.auth_key_mode, true, true, function (user) {
+
+            if (user.id == -1) {
+
+                var result = firstCache.has(UserName) ? firstCache.get(UserName) : {
+                    count: 0
+                };
+                result.count++;
+                
+                firstCache.set(UserName, result);
+            
+                if(result.count > AUTH_COUNT) {
+                    disableCache.set(UserName, {});
+                }
+
+                Console.debug(`Пользователь ${UserName} не авторизован (${result.count}/${AUTH_COUNT}).`, 'AUTH');
+
+                return res.status(401).json({
+                    meta: {
+                        success: false,
+                        msg: 'Пользователь не авторизован.',
+                        host: process.pid
+                    }
+                });
+            } else {
+                // обновляем дату входа
+                var ip = req.headers['x-forwarded-for'] || req.ip || req.socket.remoteAddress;
+                Key = (Key == '' || Key == 'null') ? null : Key;
+                db.provider.db().query('select * from core.sf_update_auth($1, $2, $3, $4, $5, $6)', [Version, user.id, Key, ip, req.headers['user-agent'], args.auth_key_mode], function(err, rows) { 
+
+                    if(err) {
+                        return res.status(401).json({
+                            meta: {
+                                success: false,
+                                msg: err.message,
+                                host: process.pid
+                            }
+                        });
+                    }
+
+                    var newKey = rows.rows[0].sf_update_auth;
+
+                    if((newKey != null && newKey < 0) || args.auth_key_mode && !Key && newKey != null && newKey < 0) {
+                        newKey = newKey < 0 ? newKey * -1 : newKey;
+
+                        return res.status(401).json({
+                            meta: {
+                                success: false,
+                                msg: 'not equal key',
+                                host: process.pid
+                            }
+                        });
+                    }
+
+                    Console.debug(`Пользователь ${UserName} выполнил авторизацию.`, 'AUTH', user.id, user.c_claims);
+
+                    newKey = newKey < 0 ? newKey * -1 : newKey;
+
+                    res.json({
+                        token: args.auth_key_mode ? Buffer.from(UserName + ':' + newKey).toString('base64') : Buffer.from(UserName + ':' + Token).toString('base64'),
                         user: {
                             id: user.id,
                             login: user.c_login,

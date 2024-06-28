@@ -29,6 +29,7 @@ module.exports = function (auth_type) {
 
     var authType = authUtil.getAuthModule(auth_type);
     router.post('/auth', authType.authorize);
+    router.post('/oidc/auth', authType.authorizeOIDC);
 
     return router;
 }
