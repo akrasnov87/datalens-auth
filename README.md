@@ -23,6 +23,7 @@ node_thread=2
 connection_string="postgres://user:password@server:5432/database-name"
 application_name="datalens-demo"
 source_types='.PG_TABLE.'
+auth_key_mode=false
 </pre>
 
 - NODE_VPATH="/demo/" - виртуальный каталог
@@ -31,6 +32,7 @@ source_types='.PG_TABLE.'
 - CONNECT_STR="postgres://user:password@server:5432/database-name" - подключение к БД
 - PROJECT_ID=datalens-demo - наименование проекта в public.workbooks и public.collections  (project_id)
 - SOURCE_TYPES=".PG_TABLE." - имя источника для проверки доступности таблиц
+- AUTH_KEY_MODE=false - режим авторизации по ключу, по умолчанию должно быть false
 
 В системе предусмотрена использование двух форматов строк подключения к БД:
 * host:server;port:5432;user:root;password:secret;database:database-name (устаревший)

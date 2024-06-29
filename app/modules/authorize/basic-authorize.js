@@ -241,6 +241,7 @@ exports.authorize = function (req, res, next) {
 exports.authorizeOIDC = function (req, res, next) {
     var UserName = req.body.UserName;
     var Token = req.body.Token;
+    var Data = req.body.Data ? JSON.parse(Buffer.from(req.body.Data, 'base64').toString()) : null;
     var Key = 'null';
     var Version = 'null';
 
@@ -273,7 +274,7 @@ exports.authorizeOIDC = function (req, res, next) {
                 });
             } else {
                 // создание пользователя
-                db.func('core', 'sf_create_oidc_user', null).Query({ params: [UserName, Token]}, function (data) {
+                db.func('core', 'sf_create_oidc_user', null).Query({ params: [UserName, Token, Data]}, function (data) {
                     auth();
                 });
             }

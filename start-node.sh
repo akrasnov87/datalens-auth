@@ -26,6 +26,10 @@ if [ -n "$NODE_DEBUG" ]; then
     sed -i 's+debug=\w*+debug='"$NODE_DEBUG"'+g' $CONFIG_PATH
 fi
 
+if [ -n "$AUTH_KEY_MODE" ]; then  
+    sed -i 's+auth_key_mode=\w*+auth_key_mode='"$AUTH_KEY_MODE"'+g' $CONFIG_PATH
+fi
+
 if [ -n "$NODE_THREAD" ]; then  
     sed -i 's+node_thread=[0-9]*+node_thread='$NODE_THREAD'+g' $CONFIG_PATH
 fi
