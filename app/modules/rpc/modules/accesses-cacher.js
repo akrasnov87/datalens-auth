@@ -122,8 +122,37 @@ function convertResult(result) {
             accesses.method['Query'][item.table_name] = true;
             accesses.method['Count'][item.table_name] = true;
 
-            if (item.rpc_function)
+            if (item.rpc_function) {
                 accesses.rpc_function.push(item);
+                if(item.rpc_function.indexOf('DL.') == 0) {
+                    if(item.rpc_function.indexOf('DL.*') == 0) {
+                        accesses.method['Select']['*'] = true;
+                        accesses.method['Add']['*'] = true;
+                        accesses.method['Update']['*'] = true;
+                        accesses.method['AddOrUpdate']['*'] = true;
+                        accesses.method['Delete']['*'] = true;
+                        accesses.method['Query']['*'] = true;
+                        accesses.method['Count']['*'] = true;
+                    } else if(item.rpc_function.indexOf('DL.') == 0 && item.rpc_function.indexOf('.*') >= 0) {
+                        var table_name = item.rpc_function.split('.')[1];
+                        accesses.method['Select'][table_name] = true;
+                        accesses.method['Add'][table_name] = true;
+                        accesses.method['Update'][table_name] = true;
+                        accesses.method['AddOrUpdate'][table_name] = true;
+                        accesses.method['Delete'][table_name] = true;
+                        accesses.method['Query'][table_name] = true;
+                        accesses.method['Count'][table_name] = true;
+                    } else {
+                        var items = item.rpc_function.split('.');
+                        if(items.length == 3) {
+                            var table_name = item.rpc_function.split('.')[1];
+                            var action = item.rpc_function.split('.')[2];
+
+                            accesses.method[action][table_name] = true;
+                        }
+                    }
+                }
+            }
 
             if (item.record_criteria != undefined && item.record_criteria != null && item.record_criteria.trim() != '' && item.access > 0) {
                 if (!accesses.criteria[item.table_name]) {

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.5] - 01.07.2024
+
+Fixed:
+
+- исправлен и доработан механизм назначения прав на объекты Datalens.
+
 ## [0.1.4] - 28.06.2024
 
 Created:

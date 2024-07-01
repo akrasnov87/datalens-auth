@@ -109,6 +109,8 @@ VALUES
 (2,	NULL, 'opensource-demo.managers',	false,	false,	false,	false);
 </pre>
 
+С версии 1.0.5 добавлена новая колонка `dl_id` - требуется для сопоставления (join) объекта datalens в БД
+
 #### О контейнерах
 - akrasnov87/datalens-auth:0.1.0- хранится на [`docker hub`](https://hub.docker.com/repository/docker/akrasnov87/datalens-auth/general), можно заменить своим собрав командой `docker build --build-arg DOCKER_USER=dl -t akrasnov87/datalens-auth:0.1.0 .`
 

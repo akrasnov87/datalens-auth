@@ -50,7 +50,9 @@ exports.user = function (skip) {
                 res.user = user;
                 res.isAuthorize = user.id != -1;
                 res.isMaster = user.c_claims.indexOf(args.primary_role) >= 0;
+                res.isAdmin = user.c_claims.indexOf(args.secodary_role) >= 0;
                 res.user.isMaster = res.isMaster;
+                res.user.isAdmin = res.isAdmin;
                 res.user.isEmbed = UserName == 'datalens_embedding';
                 
                 if (!res.isAuthorize) {

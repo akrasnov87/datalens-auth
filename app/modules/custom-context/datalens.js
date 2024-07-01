@@ -128,15 +128,21 @@ exports.datalens = function (session) {
          * [{ action: "shell", method: "permissions", data: [{ }], type: "rpc", tid: 0 }]
          */
         permissions: function(data, callback) {
-            accessFilter.permissions(session.user, data.id || data.title, function (permissions) {
-                if (permissions) {
-                    callback(result_layout.ok([permissions]));
-                } else {
-                    Console.error(`Пользователь не имеет прав на выполнение операции: ${JSON.stringify(data)}`, 'DATALENS_PERMISSIONS', session.user.id, session.user.c_claims);
-                    
-                    callback(result_layout.ok([{ hidden: true }]));
-                }
-            });
+            if(data.id || data.title || data.entryId) {
+                accessFilter.permissions(session.user, data.id || data.title || data.entryId, function (permissions) {
+                    if (permissions) {
+                        callback(result_layout.ok([permissions]));
+                    } else {
+                        Console.error(`Пользователь не имеет прав на выполнение операции: ${JSON.stringify(data)}`, 'DATALENS_PERMISSIONS', session.user.id, session.user.c_claims);
+                        
+                        callback(result_layout.ok([{ hidden: true }]));
+                    }
+                });
+            } else {
+                Console.error(`Идентифиактор объекта не передан: ${JSON.stringify(data)}`, 'DATALENS_PERMISSIONS', session.user.id, session.user.c_claims);
+                        
+                callback(result_layout.ok([{ hidden: true }]));
+            }
         },
 
         /**
@@ -223,6 +229,10 @@ exports.datalens = function (session) {
         updateAccesses: function(data, callback) {
             var errors = [];
 
+            if(!(session.user.isMaster || session.user.isAdmin)) {
+                return callback(result_layout.error(`Недостаточно прав.`));
+            }
+
             function nextDestroy(item, _callback) {
                 // удаление записи
                 if(item.method) {
@@ -246,9 +256,9 @@ exports.datalens = function (session) {
                 // удаление записи
                 if(item.method) {
                     db.provider.db().query(`
-                    INSERT INTO core.pd_accesses(${item.role_id == undefined ? "f_user" : "f_role"}, c_function)
-                    VALUES($3, 'DL.' || $1 || '.' || $2);`, 
-                    [item.id, item.method, item.role_id == undefined ? session.user.id : item.role_id], function(err, rows) { 
+                    INSERT INTO core.pd_accesses(${item.role_id == undefined ? "f_user" : "f_role"}, c_function, dl_id)
+                    VALUES($3, 'DL.' || $1 || '.' || $2, $4);`, 
+                    [item.id, item.method, item.role_id == undefined ? session.user.id : item.role_id, item.dl_id], function(err, rows) { 
                         if(err) {
                             errors.push(err.toString());
                             _callback(err, null); 
@@ -271,11 +281,11 @@ exports.datalens = function (session) {
             var next = (data.destroy ? nextDestroy : nextInsert);
 
             //next({dl: data.dl, method: data.destroy ? "%" : '*', role_id: data.role_id }, (err, rows) => {
-            next({id: data.id, method: (data['*'] ? (data.destroy ? "%" : '*') : (data.destroy ? "%" : null)), role_id: data.role_id }, (err, rows) => {
-                nextInsert({id: data.id, method: data.select ? "Select" : null, role_id: data.role_id }, (err, rows) => {
-                    nextInsert({id: data.id, method: data.add ? "Add" : null, role_id: data.role_id }, (err, rows) => {
-                        nextInsert({id: data.id, method: data.update ? "Update" : null, role_id: data.role_id }, (err, rows) => {
-                            nextInsert({id: data.id, method: data.delete ? "Delete" : null, role_id: data.role_id }, (err, rows) => {
+            next({id: data.id, dl_id: data.__id, method: (data['*'] ? (data.destroy ? "%" : '*') : (data.destroy ? "%" : null)), role_id: data.role_id }, (err, rows) => {
+                nextInsert({id: data.id, dl_id: data.__id, method: data.select ? "Select" : null, role_id: data.role_id }, (err, rows) => {
+                    nextInsert({id: data.id, dl_id: data.__id, method: data.add ? "Add" : null, role_id: data.role_id }, (err, rows) => {
+                        nextInsert({id: data.id, dl_id: data.__id, method: data.update ? "Update" : null, role_id: data.role_id }, (err, rows) => {
+                            nextInsert({id: data.id, dl_id: data.__id, method: data.delete ? "Delete" : null, role_id: data.role_id }, (err, rows) => {
                                 if(errors.length > 0) {
                                     callback(result_layout.error(errors.join(', ')));
                                 } else {

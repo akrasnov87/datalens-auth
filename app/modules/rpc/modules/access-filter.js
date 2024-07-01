@@ -20,9 +20,11 @@
  exports.permissions = function(user, action, callback) {
     cacher.getAccesses(user.id, function (convert) {
 
+        var permissions = {};
+
         if(user.isEmbed) {
             // значит это preview и Datalens
-            return callback({
+            permissions = {
                 listAccessBindings: false,
                 updateAccessBindings: false,
                 createCollection: false,
@@ -38,29 +40,12 @@
                 createCollectionInRoot: false,
                 createWorkbook: false,
                 createWorkbookInRoot: false
-            });
-        }
-
-        if (validAction('DL', action, 'Select', convert)) {
-            callback({
-                listAccessBindings: true,
-                updateAccessBindings: true,
-                limitedView: true,
-                view: true,
-                update: true,
-                copy: true,
-                move: true,
-                delete: true,
-                hidden: false,
-                createCollection: convert.method.Add['collection'] == undefined ? false : convert.method.Add['collection'],
-                createWorkbook: convert.method.Add['workbook'] == undefined ? false : convert.method.Add['workbook'],
-                createCollectionInRoot: convert.method.Add['collectionInRoot'] == undefined ? false : convert.method.Add['collectionInRoot'],
-                createWorkbookInRoot: convert.method.Add['workbookInRoot'] == undefined ? false : convert.method.Add['workbookInRoot'],
-            });
+            };
         } else {
-            callback({
-                listAccessBindings: true,
-                updateAccessBindings: true,
+
+            permissions = {
+                listAccessBindings: convert.method.Update[action] == undefined ? false : convert.method.Update[action],  // просмотр прав
+                updateAccessBindings: convert.method.Update[action] == undefined ? false : convert.method.Update[action], // назначение прав
                 createCollection: convert.method.Add['collection'] == undefined ? false : convert.method.Add['collection'],
                 createWorkbook: convert.method.Add['workbook'] == undefined ? false : convert.method.Add['workbook'],
                 createCollectionInRoot: convert.method.Add['collectionInRoot'] == undefined ? false : convert.method.Add['collectionInRoot'],
@@ -72,8 +57,10 @@
                 copy: convert.method.Add[action] == undefined ? false : convert.method.Add[action],
                 move: convert.method.AddOrUpdate[action] == undefined ? false : convert.method.AddOrUpdate[action],
                 delete: convert.method.Delete[action] == undefined ? false : convert.method.Delete[action]
-            });
+            };
         }
+
+        callback(permissions);
     });
 }
 
@@ -255,14 +242,43 @@
      var is_access_rpc_function = access_rpc_function.length > 0;
  
      var is_accesse_method = false;
+
+    if (convert.method[method] == undefined)
+        is_accesse_method = false;
+    else
+        is_accesse_method = convert.method[method][action] != undefined;
+
+    return is_access_rpc_function || is_accesse_method;
+}
+
+ /**
+  * проверка действий
+  * @param {string} namespace пространство имен
+  * @param {string} action действие
+  * @param {string} method метод
+  * @param {any} records результат запроса
+  * @returns {boolean}
+  */
+ function validAction(namespace, action, method, convert) {
+    var access_rpc_function = convert.rpc_function.filter(function (i) {
+        if ((i.rpc_function.indexOf('.' + action + '.' + method) > 0) ||
+            (i.rpc_function.indexOf('.' + action + '.*') > 0) ||
+            (i.rpc_function.indexOf(namespace + '.*') == 0) ||
+            ((namespace + '.' + action).indexOf(i.rpc_function.replace('*', '')) == 0)) {
+            return true;
+        }
+    });
+     var is_access_rpc_function = access_rpc_function.length > 0;
  
-     if (convert.method[method] == undefined)
-         is_accesse_method = false;
-     else
-         is_accesse_method = convert.method[method][action] != undefined;
- 
-     return is_access_rpc_function || is_accesse_method;
- }
+     var is_accesse_method = false;
+
+    if (convert.method[method] == undefined)
+        is_accesse_method = false;
+    else
+        is_accesse_method = convert.method[method][action] != undefined;
+
+    return is_access_rpc_function || is_accesse_method;
+}
  
  /**
   * проверка на возможность удаления
