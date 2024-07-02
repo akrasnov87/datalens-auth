@@ -29,7 +29,7 @@
         var dt = new Date();
          var item = body[0];
          if (item) {
-            //Console.debug(`RPC запрос пользователя ${res.user.c_login}: ` + JSON.stringify(item), 'RPC', res.user.id, res.user.c_claims);
+             Console.debug(`RPC запрос пользователя ${res.user.c_login}: ` + JSON.stringify(item), 'RPC', res.user.id, res.user.c_claims);
  
              body.shift();
              if (!item.data || (item.data && !Array.isArray(item.data))) {

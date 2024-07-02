@@ -1,5 +1,9 @@
 ## Описание
 
+Компонент системы для подключения авторизации к `datalens`.
+
+__Внимание__: корректность работы проверяется и разрабатывается только для `PostgreSQL`. Для других БД могут быть проблемы с совместимостью, но этот риск минимален.
+
 ### Быстрый запуск
 <pre>
 docker run --rm -it --env-file ./.env.demo -p 7000:80 akrasnov87/datalens-auth:0.1.0
@@ -109,7 +113,7 @@ VALUES
 (2,	NULL, 'opensource-demo.managers',	false,	false,	false,	false);
 </pre>
 
-С версии 1.0.5 добавлена новая колонка `dl_id` - требуется для сопоставления (join) объекта datalens в БД
+__Примечание__: с версии `1.0.5` добавлена новая колонка `dl_id` - требуется для сопоставления (join) объекта datalens в БД.
 
 #### О контейнерах
 - akrasnov87/datalens-auth:0.1.0- хранится на [`docker hub`](https://hub.docker.com/repository/docker/akrasnov87/datalens-auth/general), можно заменить своим собрав командой `docker build --build-arg DOCKER_USER=dl -t akrasnov87/datalens-auth:0.1.0 .`
@@ -121,11 +125,11 @@ __Примечание__: `akrasnov87` - это мой логин на `docker h
 По умолчанию храню контейнер в [docker hub](https://hub.docker.com/repository/docker/akrasnov87/datalens-auth/general)
 
 <pre>
-docker build --build-arg DOCKER_USER=dl -t akrasnov87/datalens-auth:0.1.0 .
-docker push akrasnov87/datalens-auth:0.1.0
+docker build --build-arg DOCKER_USER=dl -t akrasnov87/datalens-auth:0.1.5 .
+docker push akrasnov87/datalens-auth:0.1.5
 </pre>
 
 Получение образа:
 <pre>
-docker pull akrasnov87/datalens-auth:0.1.0
+docker pull akrasnov87/datalens-auth:0.1.5
 </pre>

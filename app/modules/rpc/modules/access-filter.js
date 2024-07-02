@@ -51,7 +51,7 @@
                 createCollectionInRoot: convert.method.Add['collectionInRoot'] == undefined ? false : convert.method.Add['collectionInRoot'],
                 createWorkbookInRoot: convert.method.Add['workbookInRoot'] == undefined ? false : convert.method.Add['workbookInRoot'],
                 limitedView: true,
-                view: convert.method.Select[action] == undefined ? false : convert.method.Select[action],
+                view: (convert.method.Select[action] == undefined ? false : convert.method.Select[action]) && (user.isMaster || user.isAdmin),
                 hidden: convert.method.Select[action] == undefined ? true : !convert.method.Select[action],
                 update: convert.method.Update[action] == undefined ? false : convert.method.Update[action],
                 copy: convert.method.Add[action] == undefined ? false : convert.method.Add[action],
