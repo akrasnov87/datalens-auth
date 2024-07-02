@@ -44,19 +44,19 @@
         } else {
 
             permissions = {
-                listAccessBindings: convert.method.Update[action] == undefined ? false : convert.method.Update[action],  // просмотр прав
-                updateAccessBindings: convert.method.Update[action] == undefined ? false : convert.method.Update[action], // назначение прав
-                createCollection: convert.method.Add['collection'] == undefined ? false : convert.method.Add['collection'],
-                createWorkbook: convert.method.Add['workbook'] == undefined ? false : convert.method.Add['workbook'],
-                createCollectionInRoot: convert.method.Add['collectionInRoot'] == undefined ? false : convert.method.Add['collectionInRoot'],
-                createWorkbookInRoot: convert.method.Add['workbookInRoot'] == undefined ? false : convert.method.Add['workbookInRoot'],
+                listAccessBindings: convert.method.Update[action] == undefined ? convert.method.Update['*'] : convert.method.Update[action],  // просмотр прав
+                updateAccessBindings: convert.method.Update[action] == undefined ? convert.method.Update['*'] : convert.method.Update[action], // назначение прав
+                createCollection: convert.method.Add['collection'] == undefined ? convert.method.Add['*'] : convert.method.Add['collection'],
+                createWorkbook: convert.method.Add['workbook'] == undefined ? convert.method.Add['*'] : convert.method.Add['workbook'],
+                createCollectionInRoot: convert.method.Add['collectionInRoot'] == undefined ? convert.method.Add['*'] : convert.method.Add['collectionInRoot'],
+                createWorkbookInRoot: convert.method.Add['workbookInRoot'] == undefined ? convert.method.Add['*'] : convert.method.Add['workbookInRoot'],
                 limitedView: true,
-                view: (convert.method.Select[action] == undefined ? false : convert.method.Select[action]) && (user.isMaster || user.isAdmin),
-                hidden: convert.method.Select[action] == undefined ? true : !convert.method.Select[action],
-                update: convert.method.Update[action] == undefined ? false : convert.method.Update[action],
-                copy: convert.method.Add[action] == undefined ? false : convert.method.Add[action],
-                move: convert.method.AddOrUpdate[action] == undefined ? false : convert.method.AddOrUpdate[action],
-                delete: convert.method.Delete[action] == undefined ? false : convert.method.Delete[action]
+                view: (convert.method.Select[action] == undefined ? convert.method.Select['*'] : convert.method.Select[action]) && (user.isMaster || user.isAdmin),
+                hidden: convert.method.Select[action] == undefined ? !convert.method.Select['*'] : !convert.method.Select[action],
+                update: convert.method.Update[action] == undefined ? convert.method.Update['*'] : convert.method.Update[action],
+                copy: convert.method.Add[action] == undefined ? convert.method.Add['*'] : convert.method.Add[action],
+                move: convert.method.AddOrUpdate[action] == undefined ? convert.method.AddOrUpdate['*'] : convert.method.AddOrUpdate[action],
+                delete: convert.method.Delete[action] == undefined ? convert.method.Delete['*'] : convert.method.Delete[action]
             };
         }
 
