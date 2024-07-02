@@ -80,46 +80,6 @@ exports.datalens = function (session) {
         },
 
         /**
-         * Проверка доступа к таблицам
-         * 
-         * @example
-         * [{ action: "datalens", method: "tables", data: [{ }], type: "rpc", tid: 0 }]
-         */
-        tables: function(data, callback) {
-            var results = [];
-
-            var source_types = args.source_types;
-
-            function next(callback) {
-                var item = data[0];
-                if(item != null) {
-                    data.shift();
-                    
-                    if(source_types.indexOf(`.${item.source_type}.`) >= 0) {
-                        Console.debug(`Выполняется проверка доступности таблицы ${item.parameters.table_name} для источника ${item.source_type}. ${JSON.stringify(item)}`, 'SOURCE_TYPE', session.user.id, session.user.c_claims)
-                        
-                        accessFilter.verify(session.user.id, item.parameters.schema_name, item.parameters.table_name, 'Select', (ver) => {
-                            if(ver == true) {
-                                results.push(item);
-                            }
-
-                            next(callback);
-                        })
-                    } else {
-                        Console.debug(`Источник ${item.source_type} не указан в ${source_types}. ${JSON.stringify(item)}`, 'SOURCE_TYPE', session.user.id, session.user.c_claims)
-                        results.push(item);
-                        next(callback);
-                    }
-                } else {
-                    callback();
-                }
-            }
-            next(() => {
-                callback(result_layout.ok(results));
-            })
-        },
-
-        /**
          * Права доступа
          * @param {*} data 
          * @param {*} callback 
