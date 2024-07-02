@@ -124,6 +124,14 @@ function convertResult(result) {
 
             if (item.rpc_function) {
                 accesses.rpc_function.push(item);
+                accesses.method['Select']['*'] = false;
+                accesses.method['Add']['*'] = false;
+                accesses.method['Update']['*'] = false;
+                accesses.method['AddOrUpdate']['*'] = false;
+                accesses.method['Delete']['*'] = false;
+                accesses.method['Query']['*'] = false;
+                accesses.method['Count']['*'] = false;
+
                 if(item.rpc_function.indexOf('DL.') == 0) {
                     if(item.rpc_function.indexOf('DL.*') == 0) {
                         accesses.method['Select']['*'] = true;
