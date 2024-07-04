@@ -269,10 +269,14 @@ exports.datalens = function (session) {
 
             data = utils.normal_values(data);
 
-            db.func('core', 'sf_create_user', session).Query({ params: [data.login, data.password, data.email, data.claims]}, function (data) {
+            if(!data.c_password || !data.c_login || !data.c_claims || data.c_claims.length == 0) {
+                return callback(result_layout.error(`Одно из обязательных полей не заполнено.`));
+            }
+
+            db.func('core', 'sf_create_user', session).Query({ params: [data.c_login, data.c_password, data.c_email, data.c_claims]}, function (data) {
                 var res = result_layout.ok([]);
                 res.result = data.result;
-                callback(res);
+                callback(result_layout.ok([true]));
             });
         },
 
@@ -294,6 +298,7 @@ exports.datalens = function (session) {
             delete data.s_hash;
             delete data.c_login;
             delete data.b_oidc;
+            delete data.c_claims;
 
             if(data.id == null || data.id == undefined || data.id == '') {
                 Console.error(`Обновление информации другого аккаунта: идентификатор пользователя не найден`, 'USER', session.user.id, session.user.c_claims);
@@ -303,7 +308,7 @@ exports.datalens = function (session) {
                     if (result.meta.success == true) {
                         accessCacher.clearAccesses(data.id);
 
-                        callback(result_layout.ok([result.result.records[0].rowCount == 1]));
+                        callback(result_layout.ok([result.result.records[0].rowCount == 1 ? true : 'Ошибка обновления']));
                     } else {
                         Console.error(`Обновление информации другого аккаунта ${data.id}: ${result.meta.msg}`, 'USER', session.user.id, session.user.c_claims);
 
@@ -329,7 +334,7 @@ exports.datalens = function (session) {
                 return callback(result_layout.error(`Нет роли ${args.primary_role}`));
             }
 
-            if(!session.user.oidc) {
+            if(session.user.oidc) {
                 return callback(result_layout.error(`Является внешним пользователем.`));
             }
 
@@ -337,7 +342,7 @@ exports.datalens = function (session) {
 
             authorizeDb.passwordReset(data.c_login, data.c_password, function(email) {
                 Console.debug(`Восстановление пароля ${data.c_login}`, 'USER', session.user.id, session.user.c_claims);
-                callback(result_layout.ok([email]));
+                callback(result_layout.ok(['Пароль изменён']));
             });
         },
 
@@ -346,7 +351,7 @@ exports.datalens = function (session) {
          * @param {*} data 
          * @param {*} callback 
          * @example
-         * [{"action":"datalens","method":"update_roles","data":[{ "id":1, "c_profile": 'inspector'}],"type":"rpc"}]
+         * [{"action":"datalens","method":"update_roles","data":[{ "id":1, "c_claims": 'inspector'}],"type":"rpc"}]
          */
          update_roles: function(data, callback) {
             if(!session.user.isMaster) {
@@ -365,7 +370,7 @@ exports.datalens = function (session) {
                     if (result.meta.success) {
                         accessCacher.clearAccesses(user_id);
                         
-                        callback(result_layout.ok(result.result.records));
+                        callback(result_layout.ok(['Роли обновлены']));
                     } else {
                         Console.error(`Ошибка обновления роли у аккаунта ${user_id}: ${result.meta.msg}.`, 'USER', session.user.id, session.user.c_claims);
 
@@ -384,7 +389,7 @@ exports.datalens = function (session) {
             }
 
             if(session.user.isMaster) {
-                db.func('core', 'of_users', session).Select({ params: [null]}, function (data) {
+                db.func('core', 'of_users', session).Select({ params: [data]}, function (data) {
                     
                     var res = result_layout.ok([]);
                     res.result = data.result;
