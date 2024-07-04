@@ -15,6 +15,7 @@ var accessFilter = require('../rpc/modules/access-filter');
 var accessCacher = require('../rpc/modules/accesses-cacher');
 const args = require('../conf')();
 var authorizeDb = require('../authorize/authorization-db');
+var utils = require('../utils');
 
 /**
  * Объект с набором RPC функций
@@ -141,8 +142,10 @@ exports.datalens = function (session) {
             select  r.id AS role_id, 
                     r.c_name AS name, 
                     r.c_description AS description, 
-                    r.n_weight AS weight 
-            from core.pd_roles AS r`, 
+                    r.n_weight AS weight,
+                    r.b_base as isBase 
+            from core.pd_roles AS r
+            ORDER BY r.c_name`, 
             null, function(err, rows) { 
                 if(err) {
                     callback(result_layout.error(err)); 
@@ -264,6 +267,8 @@ exports.datalens = function (session) {
                 return callback(result_layout.error(`Нет роли ${args.primary_role}`));
             }
 
+            data = utils.normal_values(data);
+
             db.func('core', 'sf_create_user', session).Query({ params: [data.login, data.password, data.email, data.claims]}, function (data) {
                 var res = result_layout.ok([]);
                 res.result = data.result;
@@ -282,6 +287,8 @@ exports.datalens = function (session) {
             if(!session.user.isMaster) {
                 return callback(result_layout.error(`Нет роли ${args.primary_role}`));
             }
+
+            data = utils.normal_values(data);
 
             delete data.c_password;
             delete data.s_hash;
@@ -326,6 +333,8 @@ exports.datalens = function (session) {
                 return callback(result_layout.error(`Является внешним пользователем.`));
             }
 
+            data = utils.normal_values(data);
+
             authorizeDb.passwordReset(data.c_login, data.c_password, function(email) {
                 Console.debug(`Восстановление пароля ${data.c_login}`, 'USER', session.user.id, session.user.c_claims);
                 callback(result_layout.ok([email]));
@@ -343,6 +352,8 @@ exports.datalens = function (session) {
             if(!session.user.isMaster) {
                 return callback(result_layout.error(`Нет роли ${args.primary_role}`));
             }
+
+            data = utils.normal_values(data);
 
             var user_id = data.id;
             var roles = data.c_claims;
@@ -381,6 +392,90 @@ exports.datalens = function (session) {
                 });
             } else {
                 callback(result_layout.ok([]));
+            }
+        },
+
+        add_or_update_role: function(data, callback) {
+            if(!session.user.isMaster) {
+                return callback(result_layout.error(`Нет роли ${args.primary_role}`));
+            }
+
+            data = utils.normal_values(data);
+
+            if(!data.id)
+                delete data.id;
+
+            if(data.c_name) {
+                db.table('core', 'pd_roles', session).AddOrUpdate(data, function (result) {
+                    if (result.meta.success == true) {
+                        accessCacher.clearAccesses();
+
+                        callback(result_layout.ok([result.result.records[0].rowCount == 1]));
+                    } else {
+                        Console.error(`Обновление информации по роли ${data.id}: ${result.meta.msg}`, 'USER', session.user.id, session.user.c_claims);
+
+                        callback(result_layout.error(new Error(result.meta.msg)));
+                    }
+                });
+            } else {
+                Console.error(`Обновление информации по роли ${JSON.stringify(data)}: ${result.meta.msg}`, 'USER', session.user.id, session.user.c_claims);
+                callback(result_layout.error(new Error('Одно из обязательных полей равно null.')));
+            }
+        },
+
+        /**
+         * Список проектов
+         * @param {*} data 
+         * @param {*} callback 
+         * 
+         * @example
+         * [{ "action": "datalens", "method": "projects", "data": [{ }], "type": "rpc", "tid": 0 }]
+         */
+        projects: function(data, callback) {
+            if(!session.user.isMaster) {
+                data.isbase = true;
+            }
+
+            db.provider.db().query(`
+            select  p.id AS project_id, 
+                    p.c_name AS name, 
+                    p.c_description AS description, 
+                    p.b_base as isBase 
+            from core.pd_projects AS p
+            ${data.isbase ? "where p.b_base = true" : ""}
+            ORDER BY p.c_name`, 
+            null, function(err, rows) { 
+                if(err) {
+                    callback(result_layout.error(err)); 
+                } else {
+                    callback(result_layout.ok(rows.rows));
+                }
+            });
+        },
+
+        add_or_update_project: function(data, callback) {
+            if(!session.user.isMaster) {
+                return callback(result_layout.error(`Нет роли ${args.primary_role}`));
+            }
+
+            data = utils.normal_values(data);
+
+            if(!data.id)
+                delete data.id;
+
+            if(data.c_name) {
+                db.table('core', 'pd_projects', session).AddOrUpdate(data, function (result) {
+                    if (result.meta.success == true) {
+                        callback(result_layout.ok([result.result.records[0].rowCount == 1]));
+                    } else {
+                        Console.error(`Обновление информации по проекту ${data.id}: ${result.meta.msg}`, 'USER', session.user.id, session.user.c_claims);
+
+                        callback(result_layout.error(new Error(result.meta.msg)));
+                    }
+                });
+            } else {
+                Console.error(`Обновление информации по проекту ${JSON.stringify(data)}: ${result.meta.msg}`, 'USER', session.user.id, session.user.c_claims);
+                callback(result_layout.error(new Error('Одно из обязательных полей равно null.')));
             }
         }
     }

@@ -51,3 +51,14 @@ exports.normal_conn_str = function(connection_string) {
         return connection_string;
     }
 }
+exports.normal_values = function(values) {
+    var result = {};
+    for(var i in values) {
+        if(i.indexOf('__') == 0) {
+            continue;
+        }
+
+        result[i] = values[i];
+    }
+    return result;
+}
