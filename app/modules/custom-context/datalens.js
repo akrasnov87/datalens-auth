@@ -166,12 +166,12 @@ exports.datalens = function (session) {
         accesses: function(data, callback) {
             db.provider.db().query(`
             SELECT 	pa.f_role AS role_id,
-                    CASE WHEN pa.c_function ILIKE '%.Select' OR pa.c_function = 'DL.*' THEN true ELSE false END AS "select",
-                    CASE WHEN pa.c_function ILIKE '%.Add' OR pa.c_function = 'DL.*' THEN true ELSE false END AS "add",
-                    CASE WHEN pa.c_function ILIKE '%.Update' OR pa.c_function = 'DL.*' THEN true ELSE false END AS "update",
-                    CASE WHEN pa.c_function ILIKE '%.Delete' OR pa.c_function = 'DL.*' THEN true ELSE false END AS "delete"
+                    CASE WHEN pa.c_function ILIKE '%.Select' THEN true ELSE false END AS "select",
+                    CASE WHEN pa.c_function ILIKE '%.Add' THEN true ELSE false END AS "add",
+                    CASE WHEN pa.c_function ILIKE '%.Update' THEN true ELSE false END AS "update",
+                    CASE WHEN pa.c_function ILIKE '%.Delete' THEN true ELSE false END AS "delete"
             FROM core.pd_accesses as pa
-            WHERE pa.c_function ILIKE ('DL.' || $1 || '.%') OR pa.c_function = 'DL.*';`, 
+            WHERE pa.c_function ILIKE ('DL.' || $1 || '.%');`, 
             [data.id], function(err, rows) { 
                 if(err) {
                     callback(result_layout.error(err)); 
@@ -190,6 +190,45 @@ exports.datalens = function (session) {
          * [{ "action": "datalens", "method": "updateAccesses", "data": [{ "id": "w203ynnjgfkck", "role_id": -1, "select": true, "add": true, "update": true, "delete": true, "destroy": true }], "type": "rpc", "tid": 0 }]
          */
         updateAccesses: function(data, callback) {
+
+            if(Array.isArray(data)) {
+                var allErrors = [];
+
+                function nextAccesses(_callback) {
+                    var item = data[0];
+                    if(item) {
+                        data.shift();
+                        setAccesses(item, (errors) => {
+                            for(var i =0; i < errors.length; i++) {
+                                allErrors.push(errors[i]);
+                            }
+
+                            nextAccesses(_callback);
+                        });
+                    } else {
+                        _callback();
+                    }
+                }
+
+                nextAccesses(() => {
+                    if(allErrors.length > 0) {
+                        callback(result_layout.error(allErrors.join(', ')));
+                    } else {
+                        accessCacher.clearAccesses(null);
+                        callback(result_layout.ok([]));
+                    }
+                });
+            } else {
+                setAccesses(data, (errors) => {
+                    if(errors.length > 0) {
+                        callback(result_layout.error(errors.join(', ')));
+                    } else {
+                        accessCacher.clearAccesses(null);
+                        callback(result_layout.ok([]));
+                    }
+                });
+            }
+
             var errors = [];
 
             if(!(session.user.isMaster || session.user.isAdmin)) {
@@ -234,12 +273,14 @@ exports.datalens = function (session) {
                 }
             }
 
-            data.select = data.select == "true" || data.select == true;
-            data.add = data.add == "true" || data.add == true;
-            data.update = data.update == "true" || data.update == true;
-            data.delete = data.delete == "true" || data.delete == true;
-            data.destroy = data.destroy == "true" || data.destroy == true;
             data['*'] = data['*'] == "true" || data['*'] == true;
+            data.select = data.select == "true" || data.select == true || data['*'];
+            data.add = data.add == "true" || data.add == true || data['*'];
+            data.update = data.update == "true" || data.update == true || data['*'];
+            data.delete = data.delete == "true" || data.delete == true || data['*'];
+            data.destroy = data.destroy == "true" || data.destroy == true;
+            data['*'] = false;
+            
 
             var next = (data.destroy ? nextDestroy : nextInsert);
 
@@ -260,6 +301,8 @@ exports.datalens = function (session) {
                     })
                 })
             })
+
+            
         },
 
         create_user: function(data, callback) {
@@ -484,4 +527,74 @@ exports.datalens = function (session) {
             }
         }
     }
+}
+
+function setAccesses(data, callback) {
+    var errors = [];
+
+    if(!(session.user.isMaster || session.user.isAdmin)) {
+        return callback(result_layout.error(`Недостаточно прав.`));
+    }
+
+    function nextDestroy(item, _callback) {
+        // удаление записи
+        if(item.method) {
+            db.provider.db().query(`
+            DELETE FROM core.pd_accesses as pa
+            WHERE pa.c_function ILIKE ('DL.' || $1 || '.' || $2) AND ${item.role_id == undefined ? "pa.f_user" : "pa.f_role"} = $3;`, 
+            [item.id, item.method, item.role_id == undefined ? session.user.id : item.role_id], function(err, rows) { 
+                if(err) {
+                    errors.push(err.toString());
+                    _callback(err, null); 
+                } else {
+                    _callback(null, []);
+                }
+            });
+        } else {
+            _callback(null, []);
+        }
+    }
+
+    function nextInsert(item, _callback) {
+        // удаление записи
+        if(item.method) {
+            db.provider.db().query(`
+            INSERT INTO core.pd_accesses(${item.role_id == undefined ? "f_user" : "f_role"}, c_function, dl_id)
+            VALUES($3, 'DL.' || $1 || '.' || $2, $4);`, 
+            [item.id, item.method, item.role_id == undefined ? session.user.id : item.role_id, item.dl_id], function(err, rows) { 
+                if(err) {
+                    errors.push(err.toString());
+                    _callback(err, null); 
+                } else {
+                    _callback(null, []);
+                }
+            });
+        } else {
+            _callback(null, []);
+        }
+    }
+
+    data['*'] = data['*'] == "true" || data['*'] == true;
+    data.select = data.select == "true" || data.select == true || data['*'];
+    data.add = data.add == "true" || data.add == true || data['*'];
+    data.update = data.update == "true" || data.update == true || data['*'];
+    data.delete = data.delete == "true" || data.delete == true || data['*'];
+    data.destroy = data.destroy == "true" || data.destroy == true;
+    data['*'] = false;
+    
+
+    var next = (data.destroy ? nextDestroy : nextInsert);
+
+    //next({dl: data.dl, method: data.destroy ? "%" : '*', role_id: data.role_id }, (err, rows) => {
+    next({id: data.id, dl_id: data.__id, method: (data['*'] ? (data.destroy ? "%" : '*') : (data.destroy ? "%" : null)), role_id: data.role_id }, (err, rows) => {
+        nextInsert({id: data.id, dl_id: data.__id, method: data.select ? "Select" : null, role_id: data.role_id }, (err, rows) => {
+            nextInsert({id: data.id, dl_id: data.__id, method: data.add ? "Add" : null, role_id: data.role_id }, (err, rows) => {
+                nextInsert({id: data.id, dl_id: data.__id, method: data.update ? "Update" : null, role_id: data.role_id }, (err, rows) => {
+                    nextInsert({id: data.id, dl_id: data.__id, method: data.delete ? "Delete" : null, role_id: data.role_id }, (err, rows) => {
+                        callback(errors);
+                    })
+                })
+            })
+        })
+    })
 }
