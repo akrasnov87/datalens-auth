@@ -484,7 +484,7 @@ function setAccesses(session, data, callback) {
         if(item.method) {
             db.provider.db().query(`
             INSERT INTO core.pd_accesses(${item.role_id == undefined ? "f_user" : "f_role"}, c_function, dl_id)
-            VALUES($3, 'DL.' || $1 || '.' || $2, $4) ON CONFLICT (f_role, c_function, dl_id) DO NOTHING;`, 
+            VALUES($3, 'DL.' || $1 || '.' || $2, $4);`, 
             [item.id, item.method, item.role_id == undefined ? session.user.id : item.role_id, item.dl_id], function(err, rows) { 
                 if(err) {
                     errors.push(err.toString());
