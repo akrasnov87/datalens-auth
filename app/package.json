@@ -24,7 +24,6 @@
     "json-parser": "latest",
     "jwa": "^2.0.0",
     "mime-types": "^2.1.34",
-    "mobnius-packager": "git://git.mobwal.com/mobnius/packager.git",
     "mobnius-pg-dbcontext": "git://git.mobwal.com/mobnius/pg-dbcontext.git",
     "mobnius-schema-reader": "git://git.mobwal.com/mobnius/schema-reader.git",
     "moment": "^2.29.1",
