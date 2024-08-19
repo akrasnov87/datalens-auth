@@ -217,7 +217,7 @@ exports.authorize = function (req, res, next) {
                             version: pkg.version,
                             oidc: user.b_oidc
                         },
-                        projectId: user.с_project_name || args.application_name
+                        projectId: user.c_project_name || args.application_name
                     });
                 });
             }
@@ -354,7 +354,7 @@ exports.authorizeOIDC = function (req, res, next) {
                             port: process.pid,
                             version: pkg.version
                         },
-                        projectId: user.с_project_name || args.application_name
+                        projectId: user.c_project_name || args.application_name
                     });
                 });
             }
