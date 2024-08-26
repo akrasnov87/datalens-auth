@@ -29,7 +29,7 @@
                 updateAccessBindings: false,
                 createCollection: false,
                 createWorkbook: false,
-                limitedView: false,
+                limitedView: true,
                 view: false,
                 update: false,
                 copy: false,

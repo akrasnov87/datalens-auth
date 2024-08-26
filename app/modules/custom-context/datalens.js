@@ -240,7 +240,7 @@ exports.datalens = function (session) {
                 return callback(result_layout.error(`Одно из обязательных полей не заполнено.`));
             }
 
-            db.func('core', 'sf_create_user', session).Query({ params: [data.c_login, data.c_password, data.c_email, data.c_claims]}, function (data) {
+            db.func('core', 'sf_create_user', session).Query({ params: [data.c_login, data.c_password, data.c_email, data.c_claims, (data.c_project_name || 'datalens-demo')]}, function (data) {
                 var res = result_layout.ok([]);
                 res.result = data.result;
                 callback(result_layout.ok([true]));
