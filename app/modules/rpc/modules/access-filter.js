@@ -55,7 +55,8 @@
                 hidden: convert.method.Select[action] == undefined ? !convert.method.Select['*'] : !convert.method.Select[action],
                 update: convert.method.Update[action] == undefined ? convert.method.Update['*'] : convert.method.Update[action],
                 copy: convert.method.Add[action] == undefined ? convert.method.Add['*'] : convert.method.Add[action],
-                move: convert.method.AddOrUpdate[action] == undefined ? convert.method.AddOrUpdate['*'] : convert.method.AddOrUpdate[action],
+                move:       (convert.method.Add[action] == undefined ? convert.method.Add['*'] : convert.method.Add[action]) || 
+                            (convert.method.Update[action] == undefined ? convert.method.Update['*'] : convert.method.Update[action]),
                 delete: convert.method.Delete[action] == undefined ? convert.method.Delete['*'] : convert.method.Delete[action]
             };
         }
