@@ -405,7 +405,7 @@ exports.datalens = function (session) {
          */
         projects: function(data, callback) {
             if(!session.user.isMaster) {
-                data.isbase = true;
+                data.projectId = session.user.c_project_name;
             }
 
             db.provider.db().query(`
@@ -414,7 +414,7 @@ exports.datalens = function (session) {
                     p.c_description AS description, 
                     p.b_base as isBase 
             from core.pd_projects AS p
-            ${data.isbase ? "where p.b_base = true" : ""}
+            ${data.projectId ? "where p.c_name = '" + data.projectId + "'" : ""}
             ORDER BY p.c_name`, 
             null, function(err, rows) { 
                 if(err) {
