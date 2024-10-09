@@ -14,6 +14,10 @@ if [ -n "$PROJECT_ID" ]; then
     sed -i 's+application_name=.*+application_name="'"$PROJECT_ID"'"+g' $CONFIG_PATH
 fi
 
+if [ -n "$BUDIBASE_URI" ]; then
+    sed -i 's+budibase_uri=.*+budibase_uri="'"$BUDIBASE_URI"'"+g' $CONFIG_PATH
+fi
+
 if [ -n "$CONNECT_STR" ]; then
     sed -i 's+connection_string=.*+connection_string="'"$CONNECT_STR"'"+g' $CONFIG_PATH
 fi

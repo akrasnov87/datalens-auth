@@ -7,6 +7,7 @@
 var db = require('../dbcontext');
 var args = require('../conf')();
 const NodeCache = require("node-cache");
+const request = require('request')
 
 /**
  * период времени для хранение ключа в кэш (секунды)
@@ -48,30 +49,57 @@ exports.getUser = function (login, password, ip, key, name, isKeyMode, disableCa
             myCache.set(cacheKey, result);
             callback(result);
         } else {
-            db.func('core', 'sf_verify_user', null).Query({ params:[login, password, ip, name, key, isKeyMode]}, function(data) {
-                var f_user = parseInt(data.meta.success ? data.result.records[0].sf_verify_user : -1);
-                if (f_user > 0) {
-                    db.func('core', without_alias ? 'sf_users_with_alias' : 'sf_users', null).Select({ params: (without_alias ? [f_user, false] : [f_user])}, function (data) {
-                        var item = data.result.records[0];
-                        item.id = parseInt(item.id);
+            if(args.budibase_uri && login.indexOf('@') > 0 && password) {
+                request.post(args.budibase_uri, { json: { username: login, password: password, "permissionInfo": true } }, (error, response, body) => {
+                    if(error || body.status == args.budibase_unauthorized_status) {
+                        callback(user, null);
+                    } else {
+                        user = {
+                            _id: body._id,
+                            c_login: body.username,
+                            c_claims: '.' + body.groups.map((it, idx)=>(it._id)).join('.') + '.',
+                            b_disabled: body.status != 'active',
+                            c_email: body.username,
+                            c_claims_name: '.' + body.groups.map((it, idx)=>(it.name)).join('.') + '.'
+                        };
 
-                        var numKey = null;
-                        try {
-                            numKey = parseInt(/\d+/gi.exec(key)[0])
-                        } catch(e) {
+                        db.func('core', 'sf_registry_user', null).Query({ params: [user, '']}, function(data) { 
+                            user.id = parseInt(data.meta.success ? data.result.records[0].sf_registry_user : -1);
 
-                        }
+                            if (user.id > 0) {
+                                db.func('core', 'sf_users', null).Select({ params: [user.id]}, function (data) {
+                                    var item = data.result.records[0];
+                                    item.id = parseInt(item.id);
+                                    if(cacheKey != null && !disableCache) {
+                                        myCache.set(cacheKey, item);
+                                    }
+                                    callback(item);
+                                });
+                            } else {
+                                callback(user, null);
+                            }
+                        });
+                    }
+                });
+            } else {
+                db.func('core', 'sf_verify_user', null).Query({ params:[login, password, ip, name, key, isKeyMode]}, function(data) {
+                    var f_user = parseInt(data.meta.success ? data.result.records[0].sf_verify_user : -1);
+                    if (f_user > 0) {
+                        db.func('core', without_alias ? 'sf_users_with_alias' : 'sf_users', null).Select({ params: (without_alias ? [f_user, false] : [f_user])}, function (data) {
+                            var item = data.result.records[0];
+                            item.id = parseInt(item.id);
 
-                        if(cacheKey != null && !disableCache) {
-                            myCache.set(cacheKey, item);
-                        }
+                            if(cacheKey != null && !disableCache) {
+                                myCache.set(cacheKey, item);
+                            }
 
-                        callback(item);
-                    });
-                } else {
-                    callback(user, null);
-                }
-            });
+                            callback(item);
+                        });
+                    } else {
+                        callback(user, null);
+                    }
+                });
+            }
         }
     }
 }

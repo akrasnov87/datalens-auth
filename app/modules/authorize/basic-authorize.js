@@ -120,8 +120,8 @@ exports.user = function (skip) {
  * 401 - логин заблокирован из-за частых запросов на авторизацию;
  */
 exports.authorize = function (req, res, next) {
-    var UserName = req.body.UserName;
-    var Password = req.body.Password;
+    var UserName = decodeURIComponent(req.body.UserName);
+    var Password = decodeURIComponent(req.body.Password);
     var Version = req.body.Version;
     var Key = req.body.Key;
 
