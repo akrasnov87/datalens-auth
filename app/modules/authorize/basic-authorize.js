@@ -41,8 +41,8 @@ exports.user = function (skip) {
                 userInfo = Buffer.from(token, 'base64').toString().split(':');
             }
             var UserName = userInfo[0];
-            var Password = args.auth_key_mode ? null : userInfo[1];
-            var Key = args.auth_key_mode ? userInfo[1] : userInfo[2];
+            var Password = userInfo[1] == '' ? null : userInfo[1];
+            var Key = userInfo.length == 3 ? userInfo[2] : null;
 
             var ip = req.headers['x-forwarded-for'] || req.ip || req.socket.remoteAddress;
             authorizeDb.getUser(UserName, Password, ip, Key, req.headers['user-agent'], args.auth_key_mode, false, false, function (user) {
@@ -206,13 +206,13 @@ exports.authorize = function (req, res, next) {
                     newKey = newKey < 0 ? newKey * -1 : newKey;
 
                     res.json({
-                        token: args.auth_key_mode ? Buffer.from(UserName + ':' + newKey).toString('base64') : Buffer.from(UserName + ':' + Password).toString('base64'),
+                        token: (args.auth_key_mode && user.b_key) ? Buffer.from(UserName + '::' + newKey).toString('base64') : Buffer.from(UserName + ':' + Password).toString('base64'),
                         user: {
                             id: user.id,
                             login: user.c_login,
                             claims: user.c_claims,
                             date: new Date(),
-                            n_key: newKey,
+                            n_key: (args.auth_key_mode && user.b_key) ? newKey : null,
                             port: process.pid,
                             version: pkg.version,
                             oidc: user.b_oidc
