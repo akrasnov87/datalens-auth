@@ -42,6 +42,10 @@ if [ -n "$SOURCE_TYPES" ]; then
     sed -i 's+source_types=.*+source_types="'"$SOURCE_TYPES"'"+g' $CONFIG_PATH
 fi
 
+if [ -n "$IGNORE_SCHEMA" ]; then  
+    sed -i 's+ignore_schema=.*+ignore_schema="'"$IGNORE_SCHEMA"'"+g' $CONFIG_PATH
+fi
+
 echo "/bin/bash /etc/nginx/setup.sh $APP_ENV 5000 $NODE_THREAD"
 
 /bin/bash /etc/nginx/setup.sh $APP_ENV 5000 $NODE_THREAD

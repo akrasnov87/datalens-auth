@@ -23,7 +23,7 @@
      reader({
          connectionString: utils.normal_conn_str(args.connection_string),
          autoRemove: true,
-         schemaList: ["'public'", "'pg_catalog'", "'information_schema'"],
+         schemaList: args.ignore_schema ? args.ignore_schema.split(',') : ["'public'", "'pg_catalog'", "'information_schema'"],
          schemaReference: join(__dirname, '../', 'schema.reference'),
          output: join(__dirname, '../', 'schema', args.port.toString()),
          readOnly: readOnly
