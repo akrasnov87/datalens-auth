@@ -46,7 +46,7 @@ exports.normal_conn_str = function(connection_string) {
     if(connection_string.indexOf('postgres://') >= 0) {
         var config = parse(connection_string)
 
-        return `host:${config.host};port:${config.port};user:${config.user};password:${config.password};database:${config.database};ssl:${config.ssl}`;
+        return `host:${config.host};port:${config.port};user:${config.user};password:${config.password};database:${config.database};ssl:${config.ssl || ''}`;
     } else {
         return connection_string;
     }

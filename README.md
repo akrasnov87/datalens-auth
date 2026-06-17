@@ -125,13 +125,13 @@ __Примечание__: `akrasnov87` - это мой логин на `docker h
 По умолчанию храню контейнер в [docker hub](https://hub.docker.com/repository/docker/akrasnov87/datalens-auth/general)
 
 <pre>
-docker build --build-arg DOCKER_USER=dl -t akrasnov87/datalens-auth:0.1.5 .
-docker push akrasnov87/datalens-auth:0.1.5
+docker build --build-arg DOCKER_USER=dl -t akrasnov87/datalens-auth:0.2.9 .
+docker push akrasnov87/datalens-auth:0.2.9
 </pre>
 
 Получение образа:
 <pre>
-docker pull akrasnov87/datalens-auth:0.1.5
+docker pull akrasnov87/datalens-auth:0.2.9
 </pre>
 
 ## Интеграция с Budibase

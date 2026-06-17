@@ -115,7 +115,7 @@ exports.datalens = function (session) {
          * [{ action: "shell", method: "embeds", data: [{ }], type: "rpc", tid: 0 }]
          */
         embed: function(data, callback) {
-            db.provider.db().query('select * from core.sf_create_embed($1, $2, $3, $4)', [session.request.headers['rpc-authorization'], data.entryId, session.user.c_login, data.reject || false], function(err, rows) { 
+            db.provider.db().query('select * from core.sf_create_embed($1, $2, $3, $4, $5)', [session.request.headers['rpc-authorization'], data.entryId, session.user.c_login, data.reject || false, data.tenantId || 'common'], function(err, rows) { 
                 if(err) {
                     callback(result_layout.ok([{ 'statusCode': 500, 'message': err.toString() }])); 
                 } else {
